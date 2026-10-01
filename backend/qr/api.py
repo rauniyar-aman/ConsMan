@@ -29,6 +29,29 @@ from .renderer import render,payload,LOGO,DEFAULT,MODULES,EYES,BALLS
 def active(qr):
     return qr.status=='ACTIVE' and not qr.archived_at and (not qr.expires_at or qr.expires_at>timezone.now())
 
+@extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
+@api_view(['POST'])
+def qr_preview(request):
+    from crm.permissions import scope
+    scope(request.user,'qr')
+    design=request.data.get('design',{})
+    if request.data.get('id'):
+        qr=get_object_or_404(branch_scope(request.user,QRCode.objects.all(),'qr'),pk=request.data['id'],archived_at__isnull=True)
+        if not isinstance(design,dict):raise ValidationError('Design must be an object.')
+        qr.design={**qr.design,**design}
+        if 'content_type' in request.data:qr.content_type=request.data['content_type']
+        if 'content' in request.data:
+            if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
+            qr.content=request.data['content']
+    else:
+        content=request.data.get('content',{})
+        if not isinstance(content,dict):raise ValidationError('Content must be an object.')
+        qr=QRCode(code='draftpreview',content_type=request.data.get('content_type','REGISTRATION'),content=content,design=design)
+    png,svg,text,design=render(qr)
+    response=Response({'image':'data:image/png;base64,'+base64.b64encode(png).decode(),'draft':True})
+    response['Cache-Control']='no-store'
+    return response
+
 def qr_data(qr):
     total=qr.submissions.count();verified=qr.submissions.filter(verified_at__isnull=False).count()
     return {'id':str(qr.pk),'code':qr.code,'label':qr.label,'branch_id':qr.branch_id,'branch_name':qr.branch.name,'campaign_id':qr.campaign_id,'campaign_name':qr.campaign.name,'content_type':qr.content_type,'content':qr.content,'status':qr.status,'expires_at':qr.expires_at,'design':{key:val for key,val in qr.design.items() if key!='logo_data'},'asset_version':qr.asset_version,'scan_count':qr.scan_count,'submissions':total,'verified':verified,'persons_created':qr.submissions.filter(outcome='CREATED').count(),'verification_rate':round(verified/max(total,1)*100,1),'url':payload(qr)}
@@ -72,8 +95,19 @@ def qr_update(request,pk):
         clone=QRCode.objects.create(label=f'{qr.label} (copy)'[:160],branch=qr.branch,campaign=qr.campaign,content_type=qr.content_type,content=qr.content,design=qr.design,created_by=request.user)
         create_asset(clone);audit(request,'QR_CLONED',clone,new={'original_id':str(qr.pk)})
         return Response(qr_data(clone),status=201)
-    allowed={'design','label','status','expires_at','archive','reason'}
-    if set(request.data)-allowed:raise ValidationError('The code, URL, branch and attribution are immutable. Clone to change them.')
+    allowed={'design','label','status','expires_at','archive','reason','content_type','content','branch_id','campaign_id'}
+    if set(request.data)-allowed:raise ValidationError('Unsupported QR update fields. The permanent code cannot be changed.')
+    old={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':qr.content,'asset_version':qr.asset_version}
+    if 'branch_id' in request.data:
+        branch=get_object_or_404(branch_scope(request.user,Branch.objects.all(),'qr',field='pk'),pk=request.data['branch_id'])
+        qr.branch=branch
+    if 'campaign_id' in request.data:qr.campaign=get_object_or_404(Campaign,pk=request.data['campaign_id'],active=True)
+    if 'content_type' in request.data:
+        if request.data['content_type'] not in ['REGISTRATION','WHATSAPP','URL','VCARD']:raise ValidationError('Unsupported QR type.')
+        qr.content_type=request.data['content_type']
+    if 'content' in request.data:
+        if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
+        qr.content=request.data['content']
     if 'label' in request.data:qr.label=serializers.CharField(max_length=160).run_validation(request.data['label'])
     if 'status' in request.data:
         if request.data['status'] not in ['ACTIVE','PAUSED','EXPIRED']:raise ValidationError('Invalid QR status.')
@@ -84,8 +118,9 @@ def qr_update(request,pk):
     if request.data.get('archive'):required_reason(request.data);qr.archived_at=timezone.now()
     if 'design' in request.data:
         if not isinstance(request.data['design'],dict):raise ValidationError('Design must be an object.')
-        qr.design={**qr.design,**request.data['design']};create_asset(qr)
-    qr.save();audit(request,'QR_UPDATED',qr,new={'status':qr.status,'asset_version':qr.asset_version,'archived':bool(qr.archived_at)})
+        qr.design={**qr.design,**request.data['design']}
+    if {'design','content','content_type'} & set(request.data):create_asset(qr)
+    qr.save();audit(request,'QR_UPDATED',qr,old=old,new={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':qr.content,'status':qr.status,'asset_version':qr.asset_version,'archived':bool(qr.archived_at)})
     return Response(qr_data(qr))
 
 @extend_schema(responses=OpenApiTypes.BINARY)

@@ -17,6 +17,7 @@ EYES=['square','rounded','circle','leaf']
 BALLS=['square','rounded','circle','diamond']
 DEFAULT={'module':'square','eye_frame':'square','eye_ball':'square','foreground':'#1E3A8A','background':'#FFFFFF','gradient':'','logo':True,'logo_fraction':0.22,'frame':'none','caption':'Scan to register','quiet_zone':4}
 LOGO=Path(settings.BASE_DIR).parent/'docs'/'logo_ConsMan.jpg'
+if not LOGO.exists():LOGO=Path(__file__).parent/'assets'/'logo_ConsMan.jpg'
 
 def uploaded_logo(raw):
     if raw.lstrip().startswith(b'<'):
