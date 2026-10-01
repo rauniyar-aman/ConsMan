@@ -1,10 +1,10 @@
 # Deployment and operations
 
-## Automatic frontend deployment
+## Cloudflare GitHub integration
 
-`.github/workflows/deploy-frontend.yml` builds and deploys the existing Cloudflare Worker on pushes to `main` that change `frontend/` or the deployment workflow. It can also be started manually from GitHub Actions. Existing checks remain separate. The deployment performs TypeScript checks, builds with the Render API origin and verifies the public homepage and API health endpoint.
+The separate GitHub Actions deployment workflow was removed at the owner's request. Connect the repository directly through Cloudflare's dashboard to configure automatic builds. Existing repository checks remain enabled.
 
-In GitHub repository Settings > Secrets and variables > Actions, add repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Create a dedicated Cloudflare deployment token scoped to the intended account and domain, using the Edit Cloudflare Workers template and permissions for Workers Scripts and Workers Routes plus required account/zone reads. Keep tokens out of Git. Local interactive Wrangler login does not authenticate GitHub runners. Until both secrets are configured, the workflow fails with an explicit configuration message and leaves the current deployment intact.
+Select the ConsMan repository and production branch `main`, with root directory `frontend`. Use build command `npm run build:cloudflare`, deploy command `npm run deploy:cloudflare`, and build environment variable `API_ORIGIN=https://consman-rauniyaraman-api.onrender.com`. Review the existing Wrangler custom domain `consman.rauniyaraman.com.np`. Cloudflare's native integration manages deployment authorization. Repository deployment secrets from the removed workflow are no longer required.
 
 ## Current free Render configuration
 
