@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+.env
+.env.local
+!.env.example
+coverage/
+tmp/
+*.tsbuildinfo
+private_media/
+private_backups/
+private_config/
+private_postgres/

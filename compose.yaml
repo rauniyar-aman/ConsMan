@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: consman
+      POSTGRES_USER: consman_migrator
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your shell}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - consman_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consman_migrator -d consman"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  consman_postgres:
