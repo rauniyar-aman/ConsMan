@@ -60,7 +60,9 @@ Updated 1 October 2026. Baseline: PRD v1.5 and the supplied brand/design specifi
 
 ## Remaining activation work
 
-The selected target is Render backend, Cloudflare frontend, Neon database and `consman.rauniyaraman.com.np`. No cloud deployment or main-workspace database cutover has been completed.
+The selected target is Render backend, Cloudflare frontend, Neon database and `consman.rauniyaraman.com.np`. The main local backend now uses clean PostgreSQL and the paired Gateway configuration in development mode. Cloud deployment remains pending; the owner will enter Neon URLs in Render manually.
+
+The Cloudflare Worker build passed. Render backend, minute housekeeping and daily encrypted-backup declarations are prepared. Backup storage round-trip verification passed locally; cloud scheduling and restoration still require activation. Database health readiness tests passed. The 30-reader/150-request PostgreSQL test had no errors but p95 was 1,404 ms, exceeding the 1,000 ms target. Staff editing and administrator account creation are already available within role access limits. Students will perform the physical printed QR scans.
 
 Still required: provider-account/domain access, Neon configuration, HTTPS/Turnstile/private storage, Gateway delivery callbacks, unattended housekeeping/backups/monitoring, concurrent-user checks, printed physical QR scans, real-spreadsheet migration and human staff acceptance sign-off. Automated workflow checks are not staff sign-off.
 

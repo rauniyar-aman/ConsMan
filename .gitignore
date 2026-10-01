@@ -14,3 +14,11 @@ private_media/
 private_backups/
 private_config/
 private_postgres/
+
+.open-next/
+.wrangler/
+.env.production
+.dev.vars
+.neon
+.agents/
+skills-lock.json

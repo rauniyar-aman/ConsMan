@@ -40,3 +40,25 @@ Request logs contain request ID, route, method, status and duration; never add b
 ## Selected deployment target
 
 Frontend: Cloudflare; backend: Render; database: Neon; domain: `consman.rauniyaraman.com.np`. These services are not deployed yet. Domain/account access, Turnstile, private storage, Gateway delivery webhooks, unattended operations, real-spreadsheet migration and human acceptance remain outstanding. Local PostgreSQL provisioning and restoration do not establish Neon deployment.
+
+## Manual Render configuration and Cloudflare release
+
+The owner will enter Neon connection URLs in Render. Import the root `render.yaml` Blueprint to prepare the backend, minute housekeeping job and daily encrypted backup job. Configure the shared `consman-production` environment group using `backend/.env.production.example`. Supply all three database variables: `DATABASE_URL` for the restricted runtime role, `MIGRATION_DATABASE_URL` for the schema owner, and `BACKUP_DATABASE_URL` for the backup reader. Use Neon URLs with SSL required. Provision the `consman_app` role in Neon before deploying, or set `APP_DATABASE_ROLE` to the actual restricted runtime role. Never use the schema owner as the runtime account. The release script migrates, seeds masters and grants access; it does not create database roles or administrator accounts.
+
+In Render, temporarily set `BOOTSTRAP_ADMIN_USERNAME`, a strong `BOOTSTRAP_ADMIN_PASSWORD`, and `BOOTSTRAP_ADMIN_BRANCH` (default `KTM`). Run `python manage.py bootstrap_admin` in the service shell, then remove these temporary environment variables. The command refuses to run when an administrator already exists. Enroll MFA on first login. The administrator creates staff accounts and manages password resets in Settings. Managers edit branch records; counselors edit owned records or records covered by an access grant. Documentation staff edit assigned education/document fields. Management and finance do not gain general profile editing. The profile screen already exposes Edit profile according to these permissions.
+
+For Cloudflare, run `npm ci` then `npm run build:cloudflare` in `frontend`, with `API_ORIGIN` set to the final Render HTTPS hostname. Review `wrangler.jsonc` and run `npm run deploy:cloudflare` using the owner's Cloudflare account. The Worker custom-domain route is `consman.rauniyaraman.com.np`; Cloudflare must control its DNS zone. Configure Turnstile for this hostname and supply its keys in Render. The local Worker bundle has built successfully; publishing, TLS and production Turnstile verification remain pending.
+
+The local Gateway address cannot be reached from Render. Provide an authenticated public HTTPS Gateway endpoint, configure its API key/session in Render, and register the backend's `/api/public/messaging/gateway-webhook/` callback with the matching signing secret. Gateway rejects private callback addresses; do not bypass that protection. Verify an actual signed delivery callback after both public endpoints are available.
+
+Configure a private S3-compatible bucket and credentials for private files and encrypted backups. Retain the Fernet backup key separately from that bucket. The Blueprint backup runs daily at 20:15 UTC (02:00 Nepal time the following day); housekeeping runs every minute. These schedules become active only after Render deployment. Add bucket versioning/retention and failure alerts, and perform a restore drill against a separate Neon database before calling cloud recovery verified. Render monitors `/api/v1/health/`, which returns 503 when the database cannot answer a readiness query. Configure an external HTTPS uptime check and alerts for backend errors, cron failures and backup failures.
+
+## Acceptance ownership and evidence
+
+The administrator creates and tests real staff accounts. A branch staff reviewer must confirm profile/contact editing, assigned access restrictions, tasks/follow-ups, intake review and administrator password reset. Record the reviewer, date and outcomes before marking staff acceptance approved. Automated role and workflow tests are evidence for this review, not a human signature.
+
+Students scan the printed QR on their phones and confirm the form opens, saves and resumes correctly. Record device, print size, scan result and OTP outcome. Generated QR decoding has passed locally; a physical student scan is still required.
+
+Real spreadsheet migration requires the actual files. Upload them to staging, review field mappings and duplicate decisions, dry-run, compare counts and obtain administrator approval before committing the import. Synthetic import/rollback tests do not establish a real migration.
+
+The local PostgreSQL concurrency run completed 150 requests from 30 readers against 20,000 records without errors, but p95 was 1,404 ms against a 1,000 ms target. Performance acceptance remains open; repeat on the deployed service and optimize or size it using measured results. Do not silently relax the target.

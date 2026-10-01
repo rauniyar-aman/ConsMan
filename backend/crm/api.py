@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.db import transaction
+from django.db import transaction, connection, DatabaseError
 from django.db.models import Q
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -34,6 +34,11 @@ def exception_handler(exc, context):
     return response
 
 def health(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+    except DatabaseError:
+        return JsonResponse({'status': 'unavailable', 'service': 'consman'}, status=503)
     return JsonResponse({'status': 'ok', 'service': 'consman'})
 
 def csrf_failure(request, reason=''):

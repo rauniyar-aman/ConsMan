@@ -1,0 +1,8 @@
+.venv
+__pycache__
+*.pyc
+*.sqlite3
+.env*
+private_config
+private_backups
+private_media

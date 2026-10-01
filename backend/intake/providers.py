@@ -24,8 +24,9 @@ class GatewayProvider:
         jid=phone.lstrip('+')+'@s.whatsapp.net'
         url=f'{settings.WHATSAPP_GATEWAY_URL.rstrip("/")}/api/messages/{quote(settings.WHATSAPP_GATEWAY_SESSION,safe="")}/{quote(jid,safe="")}/send'
         try:
-            response=requests.post(url,headers={'X-API-Key':settings.WHATSAPP_GATEWAY_KEY},json={'message':{'text':message}},timeout=(2,4),allow_redirects=False)
+            response=requests.post(url,headers={'X-API-Key':settings.WHATSAPP_GATEWAY_KEY},json={'message':{'text':message}},timeout=(2,settings.WHATSAPP_GATEWAY_READ_TIMEOUT),allow_redirects=False)
             if not response.ok or response.json().get('status') is not True:raise DeliveryFailure('GATEWAY_SEND_FAILED')
+        except requests.ReadTimeout:raise DeliveryFailure('GATEWAY_TIMEOUT')
         except (requests.RequestException,ValueError):raise DeliveryFailure('GATEWAY_UNAVAILABLE')
         # Gateway currently returns no message ID; signed message.sent webhook binds it.
         return ''

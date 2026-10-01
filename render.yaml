@@ -1,0 +1,46 @@
+envVarGroups:
+  - name: consman-production
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: consman-rauniyaraman-api.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://consman.rauniyaraman.com.np
+      - key: PUBLIC_FORM_ORIGIN
+        value: https://consman.rauniyaraman.com.np
+      - key: PUBLIC_ALLOWED_ORIGINS
+        value: https://consman.rauniyaraman.com.np
+      - key: TURNSTILE_HOSTNAME
+        value: consman.rauniyaraman.com.np
+services:
+  - type: web
+    name: consman-rauniyaraman-api
+    runtime: docker
+    plan: starter
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /api/v1/health/
+    preDeployCommand: python deployment/release.py
+    envVars:
+      - fromGroup: consman-production
+  - type: cron
+    name: consman-housekeeping
+    runtime: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    schedule: "* * * * *"
+    dockerCommand: python manage.py run_housekeeping
+    envVars:
+      - fromGroup: consman-production
+  - type: cron
+    name: consman-encrypted-backup
+    runtime: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    schedule: "15 20 * * *"
+    dockerCommand: python manage.py backup_database
+    envVars:
+      - fromGroup: consman-production

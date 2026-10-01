@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "generate:api": "openapi-typescript http://127.0.0.1:8000/api/schema/ -o src/lib/generated-api.d.ts"
+    "generate:api": "openapi-typescript http://127.0.0.1:8000/api/schema/ -o src/lib/generated-api.d.ts",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "preview:cloudflare": "opennextjs-cloudflare preview",
+    "deploy:cloudflare": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -16,12 +19,14 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.7",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "wrangler": "^4.146.0"
   }
 }
