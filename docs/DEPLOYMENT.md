@@ -1,5 +1,11 @@
 # Deployment and operations
 
+## Automatic frontend deployment
+
+`.github/workflows/deploy-frontend.yml` builds and deploys the existing Cloudflare Worker on pushes to `main` that change `frontend/` or the deployment workflow. It can also be started manually from GitHub Actions. Existing checks remain separate. The deployment performs TypeScript checks, builds with the Render API origin and verifies the public homepage and API health endpoint.
+
+In GitHub repository Settings > Secrets and variables > Actions, add repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Create a dedicated Cloudflare deployment token scoped to the intended account and domain, using the Edit Cloudflare Workers template and permissions for Workers Scripts and Workers Routes plus required account/zone reads. Keep tokens out of Git. Local interactive Wrangler login does not authenticate GitHub runners. Until both secrets are configured, the workflow fails with an explicit configuration message and leaves the current deployment intact.
+
 ## Current free Render configuration
 
 The current `render.yaml` defines one Free Docker web service and no paid cron jobs. It overrides the container command with `python deployment/start_free.py`: release migrations/master seeding/runtime grants run before Gunicorn starts, because Free services do not provide a pre-deploy phase. Startup fails if release preparation fails. The service uses one worker with four threads. Set all database and provider secrets in the shared environment group before deploying.

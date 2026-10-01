@@ -1,0 +1,48 @@
+name: Deploy Cloudflare frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      API_ORIGIN: https://consman-rauniyaraman-api.onrender.com
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Check deployment credentials
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Set the CLOUDFLARE_ACCOUNT_ID repository secret.'; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Set the CLOUDFLARE_API_TOKEN repository secret.'; exit 1; }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build:cloudflare
+      - run: npm run deploy:cloudflare
+      - name: Verify frontend and backend connection
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 10 --max-time 90 https://consman.rauniyaraman.com.np/ -o /dev/null
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 10 --max-time 90 https://consman.rauniyaraman.com.np/api/v1/health/ | python -c 'import json,sys; assert json.load(sys.stdin).get("status") == "ok"'
