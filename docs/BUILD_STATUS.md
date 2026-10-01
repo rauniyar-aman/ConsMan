@@ -60,6 +60,8 @@ Updated 1 October 2026. Baseline: PRD v1.5 and the supplied brand/design specifi
 
 ## Remaining activation work
 
+The deployment target now uses a single Render Free web service. Paid cron declarations were removed; migrations run at startup. Housekeeping and backup scheduling remain unconfigured. No cloud deployment is established by this configuration change.
+
 The selected target is Render backend, Cloudflare frontend, Neon database and `consman.rauniyaraman.com.np`. The main local backend now uses clean PostgreSQL and the paired Gateway configuration in development mode. Cloud deployment remains pending; the owner will enter Neon URLs in Render manually.
 
 The Cloudflare Worker build passed. Render backend, minute housekeeping and daily encrypted-backup declarations are prepared. Backup storage round-trip verification passed locally; cloud scheduling and restoration still require activation. Database health readiness tests passed. The 30-reader/150-request PostgreSQL test had no errors but p95 was 1,404 ms, exceeding the 1,000 ms target. Staff editing and administrator account creation are already available within role access limits. Students will perform the physical printed QR scans.

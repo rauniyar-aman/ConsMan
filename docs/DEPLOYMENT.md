@@ -1,5 +1,15 @@
 # Deployment and operations
 
+## Current free Render configuration
+
+The current `render.yaml` defines one Free Docker web service and no paid cron jobs. It overrides the container command with `python deployment/start_free.py`: release migrations/master seeding/runtime grants run before Gunicorn starts, because Free services do not provide a pre-deploy phase. Startup fails if release preparation fails. The service uses one worker with four threads. Set all database and provider secrets in the shared environment group before deploying.
+
+Free services sleep after inactivity and use temporary local storage. Keep PostgreSQL in Neon and private files in external private storage. The Blueprint does not schedule housekeeping or backups; use a separately configured scheduler on the owner's computer or a supported external service. No automatic backup schedule is active from this file.
+
+Free Render services do not provide the service shell used in the paid instructions below. Run initial administrator provisioning from a trusted local terminal against Neon using the runtime connection, production Django secret and temporary bootstrap variables. Run `python manage.py bootstrap_admin` from `backend`, then remove the temporary variables. No administrator password belongs in Git.
+
+Earlier paid-service and cron descriptions below describe the previous deployment option and do not apply to the current Free Blueprint. If paid cron services were already created, removing them from the Blueprint does not establish that they were deleted: remove them explicitly in the Render dashboard to stop charges.
+
 This is the remaining deployment runbook, not evidence that production has been deployed.
 
 ## Environment
