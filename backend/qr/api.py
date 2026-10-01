@@ -1,5 +1,7 @@
 import base64
 import io
+import copy
+from botocore.exceptions import ClientError
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import F
@@ -86,6 +88,18 @@ def create_asset(qr):
     asset.save()
     return asset
 
+def asset_bytes(qr,asset,kind):
+    field=asset.png if kind=='png' else asset.svg
+    try:
+        with field.open('rb') as stream:return stream.read()
+    except FileNotFoundError:
+        pass
+    except ClientError as exc:
+        if exc.response.get('Error',{}).get('Code') not in ['404','NoSuchKey','NotFound']:raise
+    snapshot=copy.copy(qr);snapshot.design=asset.design
+    png,svg,text,design=render(snapshot,payload_text=asset.payload)
+    return png if kind=='png' else svg
+
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
 @api_view(['PATCH','POST'])
 @transaction.atomic
@@ -130,7 +144,7 @@ def qr_download(request,pk):
     try:version=int(request.query_params.get('version',qr.asset_version))
     except ValueError:raise ValidationError('Invalid asset version.')
     asset=get_object_or_404(QRAsset,qr=qr,version=version,decode_passed=True)
-    with asset.png.open('rb') as stream:png=stream.read()
+    png=asset_bytes(qr,asset,'png')
     decoded=zxingcpp.read_barcode(Image.open(io.BytesIO(png)))
     if not decoded or decoded.text!=asset.payload:raise ValidationError('Stored asset failed decode validation. Restyle before downloading.')
     kind=request.query_params.get('format','png')
@@ -143,7 +157,7 @@ def qr_download(request,pk):
         if not result or result.text!=asset.payload:raise ValidationError('This output size failed decoding.')
         output=io.BytesIO();image.save(output,format='PNG');data=output.getvalue();mime='image/png'
     elif kind=='svg':
-        with asset.svg.open('rb') as stream:data=stream.read()
+        data=asset_bytes(qr,asset,'svg')
         final=resvg_py.svg_to_bytes(svg_string=data.decode(),width=1024,skip_system_fonts=True)
         result=zxingcpp.read_barcode(Image.open(io.BytesIO(final)))
         if not result or result.text!=asset.payload:raise ValidationError('The SVG download failed decoding.')

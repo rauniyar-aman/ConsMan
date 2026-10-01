@@ -15,7 +15,7 @@ from rest_framework.exceptions import ValidationError
 MODULES=['square','rounded','dots','extra-rounded','diamond']
 EYES=['square','rounded','circle','leaf']
 BALLS=['square','rounded','circle','diamond']
-DEFAULT={'module':'square','eye_frame':'square','eye_ball':'square','foreground':'#1E3A8A','background':'#FFFFFF','gradient':'','logo':True,'logo_fraction':0.22,'frame':'none','caption':'Scan to register','quiet_zone':4}
+DEFAULT={'module':'square','eye_frame':'square','eye_ball':'square','foreground':'#1E3A8A','background':'#FFFFFF','gradient':'','logo':True,'logo_shape':'square','logo_fraction':0.22,'frame':'none','caption':'Scan to register','quiet_zone':4}
 LOGO=Path(settings.BASE_DIR).parent/'docs'/'logo_ConsMan.jpg'
 if not LOGO.exists():LOGO=Path(__file__).parent/'assets'/'logo_ConsMan.jpg'
 
@@ -48,6 +48,7 @@ def safe_design(value):
     if d['module'] not in MODULES or d['eye_frame'] not in EYES or d['eye_ball'] not in BALLS:raise ValidationError('Unsupported module or finder style.')
     if d['frame'] not in ['none','border','caption','poster']:raise ValidationError('Unsupported frame style.')
     if not isinstance(d['caption'],str) or len(d['caption'])>100:raise ValidationError('Caption must be at most 100 characters.')
+    if d['logo_shape'] not in ['square','rounded','circle']:raise ValidationError('Unsupported logo shape.')
     if type(d['logo'])!=bool:raise ValidationError('Logo must be a boolean.')
     try:
         fraction=float(d['logo_fraction']);quiet=int(d['quiet_zone'])
@@ -83,9 +84,9 @@ def payload(qr):
         return '\n'.join(['BEGIN:VCARD','VERSION:3.0',f'FN:{esc(content.get("name","The Blessing Edu"))}',f'TEL:{esc(content.get("phone",""))}',f'EMAIL:{esc(content.get("email",""))}',f'ADR:;;{esc(content.get("address",""))};;;;','END:VCARD'])
     raise ValidationError('Unsupported QR content type.')
 
-def render(qr):
+def render(qr,payload_text=None):
     d=safe_design(qr.design)
-    text=payload(qr)
+    text=payload(qr) if payload_text is None else payload_text
     if len(text.encode())>2200:raise ValidationError('QR content is too large.')
     code=qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H if d['logo'] else qrcode.constants.ERROR_CORRECT_M,border=d['quiet_zone'],box_size=12)
     code.add_data(text);code.make(fit=True)
@@ -124,12 +125,19 @@ def render(qr):
         shape(((x+2)*scale,(y+2)*scale,3*scale,3*scale),d['eye_ball'],d['foreground'])
     if d['logo']:
         logo=uploaded_logo(base64.b64decode(d['logo_data'])) if d.get('logo_data') else Image.open(LOGO)
-        logo=logo.convert('RGBA');width=int((n-2*b)*scale*d['logo_fraction']);logo.thumbnail((width,width))
-        lx=(size-logo.width)//2;ly=(size-logo.height)//2
-        draw.rectangle((lx-5,ly-5,lx+logo.width+5,ly+logo.height+5),fill=d['background'])
-        image.paste(logo,(lx,ly),logo)
-        logo_bytes=io.BytesIO();logo.save(logo_bytes,format='PNG')
-        svg.append(f'<rect x="{lx-5}" y="{ly-5}" width="{logo.width+10}" height="{logo.height+10}" fill="{html.escape(d["background"],quote=True)}"/><image x="{lx}" y="{ly}" width="{logo.width}" height="{logo.height}" href="data:image/png;base64,{base64.b64encode(logo_bytes.getvalue()).decode()}"/>')
+        logo=logo.convert('RGBA');width=max(1,int((n-2*b)*scale*d['logo_fraction']))
+        if d['logo_shape']=='square':
+            logo.thumbnail((width,width));badge=Image.new('RGBA',(logo.width+10,logo.height+10),d['background']);badge.paste(logo,(5,5),logo)
+        else:
+            side=width+10;badge=Image.new('RGBA',(side,side),(0,0,0,0));badge_draw=ImageDraw.Draw(badge)
+            if d['logo_shape']=='circle':badge_draw.ellipse((0,0,side-1,side-1),fill=d['background'])
+            else:badge_draw.rounded_rectangle((0,0,side-1,side-1),radius=side//5,fill=d['background'])
+            inner=max(1,int(width*.70)) if d['logo_shape']=='circle' else max(1,width-4)
+            logo.thumbnail((inner,inner));badge.paste(logo,((side-logo.width)//2,(side-logo.height)//2),logo)
+        lx=(size-badge.width)//2;ly=(size-badge.height)//2
+        image.paste(badge,(lx,ly),badge)
+        logo_bytes=io.BytesIO();badge.save(logo_bytes,format='PNG')
+        svg.append(f'<image x="{lx}" y="{ly}" width="{badge.width}" height="{badge.height}" href="data:image/png;base64,{base64.b64encode(logo_bytes.getvalue()).decode()}"/>')
     if d['frame']!='none':
         margin=24;bottom=72 if d['frame'] in ['caption','poster'] else margin
         width=size+margin*2;height=size+margin+bottom

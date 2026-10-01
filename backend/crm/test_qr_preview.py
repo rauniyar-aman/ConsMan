@@ -8,9 +8,22 @@ from crm.models import Branch,StaffProfile,AuditEvent,Campaign,Source
 from qr.models import QRCode,QRAsset
 from tempfile import TemporaryDirectory
 from django.test import override_settings
+from qr.renderer import render,safe_design
+from rest_framework.exceptions import ValidationError
+import resvg_py
 
 
 class QRPreviewTests(TestCase):
+    def test_logo_shapes_decode_in_png_and_svg(self):
+        for shape in ['square','rounded','circle']:
+            with self.subTest(shape=shape):
+                png,svg,text,design=render(QRCode(code='shapecheck',design={'logo_shape':shape}))
+                self.assertEqual(design['logo_shape'],shape)
+                self.assertEqual(zxingcpp.read_barcode(Image.open(io.BytesIO(png))).text,text)
+                raster=resvg_py.svg_to_bytes(svg_string=svg.decode(),width=1024,skip_system_fonts=True)
+                self.assertEqual(zxingcpp.read_barcode(Image.open(io.BytesIO(raster))).text,text)
+        with self.assertRaises(ValidationError):safe_design({'logo_shape':'unsupported'})
+
     def setUp(self):
         self.branch=Branch.objects.create(name='Preview branch',code='PREVIEW')
         self.user=User.objects.create(username='preview-admin')
@@ -55,6 +68,14 @@ class QRPreviewTests(TestCase):
             qr=QRCode.objects.get(pk=created.data['id'])
             self.assertEqual(qr.label,'Updated')
             self.assertEqual(list(qr.assets.order_by('version').values_list('payload',flat=True)),['https://example.com/original','https://example.com/updated'])
+            first=qr.assets.get(version=1)
+            from pathlib import Path
+            Path(first.png.path).unlink();Path(first.svg.path).unlink()
+            for fmt in ['png','svg','pdf']:
+                recovered=self.client.get('/api/v1/qr/'+str(qr.pk)+'/download/?format='+fmt+'&version=1')
+                self.assertEqual(recovered.status_code,200,getattr(recovered,'data',None))
+                if fmt=='png':self.assertEqual(zxingcpp.read_barcode(Image.open(io.BytesIO(recovered.content))).text,'https://example.com/original')
+            qr.refresh_from_db();self.assertEqual(qr.asset_version,2)
             invalid=self.client.patch('/api/v1/qr/'+created.data['id']+'/',{'content':{'url':'http://invalid.example'}},format='json')
             self.assertEqual(invalid.status_code,400)
             qr.refresh_from_db();self.assertEqual(qr.asset_version,2);self.assertEqual(qr.content['url'],'https://example.com/updated')
