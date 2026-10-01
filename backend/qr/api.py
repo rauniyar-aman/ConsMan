@@ -56,7 +56,7 @@ def qr_preview(request):
 
 def qr_data(qr):
     total=qr.submissions.count();verified=qr.submissions.filter(verified_at__isnull=False).count()
-    return {'id':str(qr.pk),'code':qr.code,'label':qr.label,'branch_id':qr.branch_id,'branch_name':qr.branch.name,'campaign_id':qr.campaign_id,'campaign_name':qr.campaign.name,'content_type':qr.content_type,'content':qr.content,'status':qr.status,'expires_at':qr.expires_at,'design':{key:val for key,val in qr.design.items() if key!='logo_data'},'asset_version':qr.asset_version,'scan_count':qr.scan_count,'submissions':total,'verified':verified,'persons_created':qr.submissions.filter(outcome='CREATED').count(),'verification_rate':round(verified/max(total,1)*100,1),'url':payload(qr)}
+    return {'id':str(qr.pk),'code':qr.code,'label':qr.label,'branch_id':qr.branch_id,'branch_name':qr.branch.name,'campaign_id':qr.campaign_id,'campaign_name':qr.campaign.name,'content_type':qr.content_type,'content':{k:v for k,v in qr.content.items() if k!='password'},'status':qr.status,'expires_at':qr.expires_at,'design':{key:val for key,val in qr.design.items() if key!='logo_data'},'asset_version':qr.asset_version,'scan_count':qr.scan_count,'submissions':total,'verified':verified,'persons_created':qr.submissions.filter(outcome='CREATED').count(),'verification_rate':round(verified/max(total,1)*100,1),'url':('Wi-Fi: '+str(qr.content.get('ssid',''))) if qr.content_type=='WIFI' else payload(qr)}
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
 @api_view(['GET','POST'])
@@ -71,7 +71,7 @@ def qr_list(request):
     campaign=get_object_or_404(Campaign,pk=request.data.get('campaign_id'),active=True)
     label=serializers.CharField(max_length=160).run_validation(request.data.get('label'))
     kind=request.data.get('content_type','REGISTRATION')
-    if kind not in ['REGISTRATION','WHATSAPP','URL','VCARD']:raise ValidationError('Unsupported QR type.')
+    if kind not in ['REGISTRATION','WHATSAPP','URL','VCARD','WIFI']:raise ValidationError('Unsupported QR type.')
     content=request.data.get('content',{})
     if not isinstance(content,dict):raise ValidationError('Content must be an object.')
     qr=QRCode.objects.create(label=label,branch=branch,campaign=campaign,content_type=kind,content=content,design=request.data.get('design',{}),created_by=request.user)
@@ -111,13 +111,13 @@ def qr_update(request,pk):
         return Response(qr_data(clone),status=201)
     allowed={'design','label','status','expires_at','archive','reason','content_type','content','branch_id','campaign_id'}
     if set(request.data)-allowed:raise ValidationError('Unsupported QR update fields. The permanent code cannot be changed.')
-    old={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':qr.content,'asset_version':qr.asset_version}
+    old={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':{k:v for k,v in qr.content.items() if k!='password'},'asset_version':qr.asset_version}
     if 'branch_id' in request.data:
         branch=get_object_or_404(branch_scope(request.user,Branch.objects.all(),'qr',field='pk'),pk=request.data['branch_id'])
         qr.branch=branch
     if 'campaign_id' in request.data:qr.campaign=get_object_or_404(Campaign,pk=request.data['campaign_id'],active=True)
     if 'content_type' in request.data:
-        if request.data['content_type'] not in ['REGISTRATION','WHATSAPP','URL','VCARD']:raise ValidationError('Unsupported QR type.')
+        if request.data['content_type'] not in ['REGISTRATION','WHATSAPP','URL','VCARD','WIFI']:raise ValidationError('Unsupported QR type.')
         qr.content_type=request.data['content_type']
     if 'content' in request.data:
         if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
@@ -134,7 +134,7 @@ def qr_update(request,pk):
         if not isinstance(request.data['design'],dict):raise ValidationError('Design must be an object.')
         qr.design={**qr.design,**request.data['design']}
     if {'design','content','content_type'} & set(request.data):create_asset(qr)
-    qr.save();audit(request,'QR_UPDATED',qr,old=old,new={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':qr.content,'status':qr.status,'asset_version':qr.asset_version,'archived':bool(qr.archived_at)})
+    qr.save();audit(request,'QR_UPDATED',qr,old=old,new={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':{k:v for k,v in qr.content.items() if k!='password'},'status':qr.status,'asset_version':qr.asset_version,'archived':bool(qr.archived_at)})
     return Response(qr_data(qr))
 
 @extend_schema(responses=OpenApiTypes.BINARY)

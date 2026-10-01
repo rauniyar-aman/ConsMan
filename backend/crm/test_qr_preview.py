@@ -14,6 +14,19 @@ import resvg_py
 
 
 class QRPreviewTests(TestCase):
+    def test_wifi_payload_escaping_and_validation(self):
+        from qr.renderer import payload
+        qr=QRCode(content_type='WIFI',content={'ssid':'Guest;Room','password':'test:pass,word','security':'WPA','hidden':True},design={'logo':False})
+        expected=r'WIFI:T:WPA;S:Guest\;Room;P:test\:pass\,word;H:true;;'
+        self.assertEqual(payload(qr),expected)
+        png,svg,text,design=render(qr)
+        self.assertEqual(zxingcpp.read_barcode(Image.open(io.BytesIO(png))).text,expected)
+        qr.content={'ssid':'Guest','security':'nopass','password':'ignored'}
+        self.assertEqual(payload(qr),'WIFI:T:nopass;S:Guest;H:false;;')
+        for content in [{'ssid':''},{'ssid':'Guest','security':'unsupported'},{'ssid':'Guest','security':'WPA','password':''}]:
+            qr.content=content
+            with self.assertRaises(ValidationError):payload(qr)
+
     def test_logo_shapes_decode_in_png_and_svg(self):
         for shape in ['square','rounded','circle']:
             with self.subTest(shape=shape):

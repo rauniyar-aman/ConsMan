@@ -69,6 +69,15 @@ def safe_design(value):
 
 def payload(qr):
     content=qr.content
+    if qr.content_type=='WIFI':
+        ssid=content.get('ssid','');password=content.get('password','');security=content.get('security','WPA');hidden=content.get('hidden',False)
+        if not isinstance(ssid,str) or not ssid or len(ssid.encode('utf-8'))>32:raise ValidationError('Enter a Wi-Fi network name of 1–32 bytes.')
+        if security not in ['WPA','WEP','nopass']:raise ValidationError('Unsupported Wi-Fi security type.')
+        if not isinstance(password,str) or len(password)>128 or (security!='nopass' and not password):raise ValidationError('Enter the Wi-Fi password.')
+        if type(hidden)!=bool:raise ValidationError('Hidden network must be a boolean.')
+        if any(ord(c)<32 for c in ssid+password):raise ValidationError('Wi-Fi credentials cannot contain control characters.')
+        def escape(value):return ''.join('\\'+c if c in '\\;,:"' else c for c in value)
+        return f'WIFI:T:{security};S:{escape(ssid)};'+(f'P:{escape(password)};' if security!='nopass' else '')+f'H:{str(hidden).lower()};;'
     if qr.content_type=='REGISTRATION':return f'{settings.PUBLIC_FORM_ORIGIN.rstrip("/")}/r/{qr.code}'
     if qr.content_type=='WHATSAPP':
         from crm.services import normalize_phone
