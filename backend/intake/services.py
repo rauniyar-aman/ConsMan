@@ -6,9 +6,9 @@ from django.db import transaction
 from django.db.models import F,Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError, Throttled, PermissionDenied
-from crm.models import Person, ContactMethod, ConsentRecord, FollowUp, BusinessCalendar, SystemPolicy, AuditEvent
+from crm.models import Person, ContactMethod, ConsentRecord, SystemPolicy, AuditEvent
 from crm.services import normalize_phone,next_reference, duplicate_signals, activity, audit, assign_owner, automatic_owner, notify, notify_managers, refresh_next_action
-from crm.calendar import start_sla,business_due
+from crm.calendar import start_sla
 from .models import IntakeSubmission,OtpChallenge,MessageDelivery,RateBucket,RateEvent,IntakeReview
 from .providers import digest,get_provider,DeliveryFailure
 
@@ -110,9 +110,6 @@ def process_verified(request,submission,chosen_person=None,allow_create=False):
         start_sla(person,'ASSIGNMENT');start_sla(person,'FIRST_CONTACT')
         if owner:assign_owner(request,person,owner,'AUTO: round-robin')
         else:notify_managers(qr.branch,'INTAKE','Verified visitor awaiting assignment',person)
-        calendar,_=BusinessCalendar.objects.get_or_create(branch=qr.branch)
-        due=person.sla_timers.filter(rule__trigger='FIRST_CONTACT').values_list('due_at',flat=True).first() or business_due(timezone.now(),24,calendar)
-        FollowUp.objects.create(person=person,owner=owner,subject='First contact after visitor registration',due_at=due)
         refresh_next_action(person)
         queue_candidates=__import__('crm.services',fromlist=['queue_candidates']).queue_candidates
         queue_candidates(person,matches)

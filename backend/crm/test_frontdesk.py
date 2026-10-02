@@ -116,6 +116,7 @@ class FrontdeskWorkflowTests(TestCase):
         verified=self.client.post(verify,{'code':provider.code},format='json',HTTP_X_RESUME_TOKEN=credentials['resume_token']);self.assertEqual(verified.status_code,200,verified.data)
         retry=self.client.post(verify,{'code':provider.code},format='json',HTTP_X_RESUME_TOKEN=credentials['resume_token']);self.assertEqual(retry.data['person_id'],verified.data['person_id'])
         person=Person.objects.get(pk=verified.data['person_id']);self.assertIsNone(person.owner);self.assertEqual(person.preferred_university,'Test university');self.assertEqual(person.education.count(),1)
+        self.assertFalse(person.followups.exists());self.assertIsNone(person.next_action_due_at)
         self.assertEqual(IntakeSubmission.objects.get().verified_by_staff,self.desk)
         self.assertEqual(self.client.post(f'/api/v1/people/{person.pk}/reassign/',{'owner_id':self.uk.pk,'reason':'UK counselor'},format='json').status_code,200)
         person.refresh_from_db();self.assertEqual(person.owner,self.uk)

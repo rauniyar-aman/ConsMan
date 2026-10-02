@@ -156,6 +156,8 @@ class PhaseOneTests(TestCase):
         self.assertEqual(response.status_code,200,response.data)
         self.assertEqual(Person.objects.count(),1)
         self.assertEqual(ContactMethod.objects.get(type='PHONE').verified_via,'OTP_SMS')
+        self.assertFalse(FollowUp.objects.exists())
+        self.assertIsNone(Person.objects.get().next_action_due_at)
     def test_provider_failure_saved_and_manager_only_queue(self):
         with patch('intake.services.get_provider') as mock:
             mock.return_value.name='failure';mock.return_value.send.side_effect=RuntimeError('unavailable')
