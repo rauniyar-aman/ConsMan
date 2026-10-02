@@ -224,11 +224,11 @@ class FrontdeskWorkflowTests(TestCase):
         from .models import CounselingOption
         url='/api/v1/counseling/options/'
         self.client.force_authenticate(self.counselor)
-        for kind,name in [('UNIVERSITY','University of East London'),('COURSE','MSc Computing'),('INTAKE','September 2027')]:
+        for kind,name in [('COUNTRY','Nepal'),('UNIVERSITY','University of East London'),('COURSE','MSc Computing'),('INTAKE','September 2027')]:
             result=self.client.post(url,{'kind':kind,'name':name},format='json');self.assertEqual(result.status_code,201,result.data)
             repeat=self.client.post(url,{'kind':kind,'name':name.lower()},format='json');self.assertEqual(repeat.status_code,200);self.assertEqual(repeat.data['id'],result.data['id'])
             self.client.force_authenticate(self.uk);self.assertEqual(self.client.get(url,{'kind':kind}).data['results'][0]['name'],name)
-        self.assertEqual(CounselingOption.objects.count(),3)
+        self.assertEqual(CounselingOption.objects.count(),4)
         self.client.force_authenticate(self.desk);self.assertEqual(self.client.get(url,{'kind':'UNIVERSITY'}).status_code,200)
         self.assertEqual(self.client.post(url,{'kind':'UNIVERSITY','name':'Other'},format='json').status_code,403)
 

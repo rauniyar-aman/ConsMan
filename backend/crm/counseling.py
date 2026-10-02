@@ -100,7 +100,7 @@ def suggestions(request,pk):
 
 
 class OptionInput(serializers.Serializer):
-    kind=serializers.ChoiceField(choices=['UNIVERSITY','COURSE','INTAKE'])
+    kind=serializers.ChoiceField(choices=['COUNTRY','UNIVERSITY','COURSE','INTAKE'])
     name=serializers.CharField(max_length=200)
 
 @extend_schema(request=OptionInput,responses=OpenApiTypes.OBJECT)
@@ -114,9 +114,9 @@ def suggestion_options(request):
         if set(request.data)-{'kind','name'}:raise ValidationError('Unsupported option fields.')
         serializer=OptionInput(data=request.data);serializer.is_valid(raise_exception=True)
         kind=serializer.validated_data['kind'];name=' '.join(serializer.validated_data['name'].split())
-        if kind=='INTAKE' and len(name)>80:raise ValidationError('Intake must be at most 80 characters.')
+        if kind in ['COUNTRY','INTAKE'] and len(name)>80:raise ValidationError('Country and intake must be at most 80 characters.')
         item,created=CounselingOption.objects.get_or_create(kind=kind,normalized_name=name.casefold(),defaults={'name':name,'created_by':request.user})
         if created:audit(request,'COUNSELING_OPTION_ADDED',item,new={'kind':kind,'name':name})
         return Response({'id':item.pk,'name':item.name,'kind':item.kind},status=201 if created else 200)
-    kind=serializers.ChoiceField(choices=['UNIVERSITY','COURSE','INTAKE']).run_validation(request.query_params.get('kind'))
+    kind=serializers.ChoiceField(choices=['COUNTRY','UNIVERSITY','COURSE','INTAKE']).run_validation(request.query_params.get('kind'))
     return Response({'results':list(CounselingOption.objects.filter(kind=kind).values('id','name','kind'))})

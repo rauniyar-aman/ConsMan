@@ -353,7 +353,7 @@ class CounselingSuggestion(models.Model):
 
 
 class CounselingOption(models.Model):
-    kind = models.CharField(max_length=20, choices=[('UNIVERSITY','University'),('COURSE','Course'),('INTAKE','Intake')])
+    kind = models.CharField(max_length=20, choices=[('COUNTRY','Country'),('UNIVERSITY','University'),('COURSE','Course'),('INTAKE','Intake')])
     name = models.CharField(max_length=200)
     normalized_name = models.CharField(max_length=200)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
