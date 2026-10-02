@@ -1,6 +1,7 @@
  'use client';
 import {use,useEffect,useState,useCallback} from 'react';
 import {api,message,type User,type Masters,type Detail,type Row} from '@/lib/api';
+import {NotificationPopups} from '@/components/notification-popups';
 import {PersonPanel} from '@/components/person-profile';
 import {ActionForm,reason} from '@/components/action-form';
 export default function ProfilePage({params}:{params:Promise<{id:string}>}){
@@ -10,5 +11,5 @@ export default function ProfilePage({params}:{params:Promise<{id:string}>}){
  async function saved(text:string){setToast(text);await refresh();}
  if(loading)return <main className="loading">Opening profile…</main>;
  if(!user)return <main><h1>Sign in required</h1><p>Sign in to the workspace, then reload this profile tab.</p><a className="primary" href="/" target="_blank" rel="noreferrer">Open sign in</a></main>;
- return <>{error&&<main><p className="error" role="alert">{error}</p><button className="secondary" onClick={()=>void refresh()}>Retry</button><a href="/">Back to workspace</a></main>}{masked&&<main className="card record-card"><h1>Existing record</h1><p>Owner: {String(masked.owner_name)} · {String(masked.branch_name)}</p>{user.permissions?.request_access&&<ActionForm title="Request access" path="access-requests/" fields={[reason]} extra={{person_id:id}} done={()=>setToast('Access requested.')}/>}<a href="/">Back to workspace</a></main>}{detail&&masters&&<PersonPanel detail={detail} user={user} masters={masters} close={()=>{window.location.href='/';}} saved={saved} busy={busy} setBusy={setBusy}/>} {!detail&&!masked&&!error&&<main>Profile unavailable.</main>}{toast&&<div className="toast" role="status" onClick={()=>setToast('')}>{toast}</div>}</>;
+ return <><NotificationPopups user={user}/>{error&&<main><p className="error" role="alert">{error}</p><button className="secondary" onClick={()=>void refresh()}>Retry</button><a href="/">Back to workspace</a></main>}{masked&&<main className="card record-card"><h1>Existing record</h1><p>Owner: {String(masked.owner_name)} · {String(masked.branch_name)}</p>{user.permissions?.request_access&&<ActionForm title="Request access" path="access-requests/" fields={[reason]} extra={{person_id:id}} done={()=>setToast('Access requested.')}/>}<a href="/">Back to workspace</a></main>}{detail&&masters&&<PersonPanel detail={detail} user={user} masters={masters} close={()=>{window.location.href='/';}} saved={saved} busy={busy} setBusy={setBusy}/>} {!detail&&!masked&&!error&&<main>Profile unavailable.</main>}{toast&&<div className="toast" role="status" onClick={()=>setToast('')}>{toast}</div>}</>;
 }

@@ -63,8 +63,8 @@ class FrontdeskWorkflowTests(TestCase):
         r=self.client.post(self.path,self.payload(followup_due_at=(timezone.now()+timedelta(days=1)).isoformat(),followup_owner_id=self.outside.pk),format='json')
         self.assertEqual(r.status_code,404);self.assertFalse(CounselingRecord.objects.exists());self.assertFalse(FollowUp.objects.exists())
         self.client.force_authenticate(self.outside)
-        self.assertEqual(self.client.get(self.path).status_code,404)
-        self.assertEqual(self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).status_code,404)
+        self.assertEqual(self.client.get(self.path).status_code,200)
+        self.assertEqual(self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).status_code,200)
     def test_another_counselor_cannot_edit_record(self):
         self.client.force_authenticate(self.uk)
         self.assertEqual(self.client.post(self.path,self.payload(),format='json').status_code,404)
@@ -181,3 +181,12 @@ class FrontdeskWorkflowTests(TestCase):
             self.person.refresh_from_db();self.assertEqual(self.person.stage,'LEAD');self.assertEqual(self.person.lead_status,status)
             self.assertIsNone(self.person.converted_at)
             event=AuditEvent.objects.filter(action='LIFECYCLE_CHANGED').latest('pk');self.assertEqual(event.new['status'],status)
+
+    def test_all_staff_can_view_other_students_without_grants(self):
+        other=Person.objects.create(ref='BE-OTHER',full_name='Other branch visitor',branch=self.other_branch,owner=None,source=self.source)
+        for role in StaffProfile.Role.values:
+            user=self.staff('shared-'+role,role,self.branch);self.client.force_authenticate(user)
+            rows=self.client.get('/api/v1/people/');self.assertEqual(rows.status_code,200,rows.data);self.assertEqual(rows.data['count'],2)
+            profile=self.client.get(f'/api/v1/people/{other.pk}/');self.assertEqual(profile.status_code,200,profile.data);self.assertFalse(profile.data.get('masked',False))
+        self.client.force_authenticate(self.counselor)
+        self.assertEqual(self.client.patch(f'/api/v1/people/{other.pk}/profile/',{'full_name':'Unauthorized'},format='json').status_code,404)

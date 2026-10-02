@@ -44,31 +44,31 @@ class CrmTests(TestCase):
         response=self.create(duplicate_reason='Shared family contact; different person')
         self.assertEqual(response.status_code,201)
         self.assertEqual(Person.objects.count(),2)
-    def test_other_owner_duplicates_are_masked_and_cannot_override(self):
+    def test_other_owner_duplicate_is_visible_but_cannot_override(self):
         self.client.force_authenticate(self.manager)
         self.create(owner_id=self.other.pk)
         self.client.force_authenticate(self.owner)
         response=self.create(duplicate_reason='Ignore')
         self.assertEqual(response.status_code,409)
         self.assertEqual(response.data['code'],'duplicate_access_required')
-        self.assertNotIn('name',response.data['matches'][0])
-        self.assertNotIn('ref',response.data['matches'][0])
+        self.assertIn('name',response.data['matches'][0])
+        self.assertIn('ref',response.data['matches'][0])
     def test_scope_prevents_direct_api_bypass(self):
         person=self.create().data
         self.client.force_authenticate(self.other)
-        self.assertEqual(self.client.get('/api/v1/people/').data['count'],0)
+        self.assertEqual(self.client.get('/api/v1/people/').data['count'],1)
         for path in ['', 'convert/', 'activities/', 'followups/']:
             url=f'/api/v1/people/{person["id"]}/{path}'
             response=self.client.get(url) if not path else self.client.post(url,{},format='json')
             if not path:
-                self.assertEqual(response.status_code,200);self.assertTrue(response.data['masked']);self.assertNotIn('person',response.data);self.assertNotIn('full_name',response.data['record'])
+                self.assertEqual(response.status_code,200);self.assertIn('person',response.data);self.assertNotIn('masked',response.data)
             else:self.assertEqual(response.status_code,404)
         self.assertEqual(self.create(owner_id=self.owner.pk,phone='9801234568').status_code,403)
     def test_manager_branch_scope(self):
         outsider=self.user('outsider','COUNSELOR',self.other_branch)
         Person.objects.create(ref=next_reference(),full_name='Outside',owner=outsider,branch=self.other_branch,source=self.source,created_by=outsider)
         self.client.force_authenticate(self.manager)
-        self.assertEqual(self.client.get('/api/v1/people/').data['count'],0)
+        self.assertEqual(self.client.get('/api/v1/people/').data['count'],1)
         self.assertEqual(self.create(owner_id=outsider.pk,branch_id=self.other_branch.pk).status_code,403)
     def test_convert_preserves_identity_and_history(self):
         person=self.create().data

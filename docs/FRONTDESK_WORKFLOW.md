@@ -44,3 +44,16 @@ by OTP after entering paper answers.
 
 Profiles now open in a separate tab at `/people/<person-id>`. Reloading or bookmarking
 that page keeps the same profile. Staff authentication and existing access scopes apply.
+
+
+## Shared student list and notifications
+
+Every active staff role can view the complete people list and open profiles directly,
+including students assigned to another counselor or branch. Profile access does not
+require an access request. Assignment, editing, counselling, conversion and finance
+permissions still follow each role's existing ownership and branch rules.
+
+New unread notifications appear at the bottom right of the workspace and profile
+pages. Staff can open the linked profile, mark the notification read, or dismiss
+its pop-up. Dismissing keeps the notification in Notifications. Checks run every
+15 seconds while the tab is visible; no operating-system push notification is sent.

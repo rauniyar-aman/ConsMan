@@ -1,5 +1,6 @@
 'use client';
 import {PersonPanel} from '@/components/person-profile';
+import {NotificationPopups} from '@/components/notification-popups';
 import {PhoneInput} from '@/components/phone-input';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Image from 'next/image';
@@ -109,7 +110,7 @@ export default function Home() {
       <div className="official-logo"><Image src="/logo-consman.jpg" alt="ConsMan — Education Consultancy CRM" width={176} height={96} priority/></div>
       <div className="workspace"><span className="workspace-icon">BE</span><div><strong>The Blessing Edu</strong><small>{user.branch} workspace</small></div><ChevronRight size={14}/></div>
       <div className="nav-label">WORKSPACE</div>
-      {user.role!=='FINANCE'&&<nav>
+      {user.permissions?.view&&<nav>
         <button className={view==='dashboard'?'active':''} onClick={()=>navigate('dashboard')}><LayoutDashboard size={18}/>Overview</button>
         <button className={view==='people'?'active':''} onClick={()=>navigate('people')}><Users size={18}/>All people<span className="nav-count">{dashboard?.people||0}</span></button>
         <button className={view==='followups'?'active':''} onClick={()=>navigate('followups')}><CalendarDays size={18}/>Follow-ups{dashboard?.overdue ? <span className="nav-count urgent">{dashboard.overdue}</span>:null}</button>
@@ -147,7 +148,7 @@ export default function Home() {
     {create&&masters&&<CreatePerson masters={masters} close={()=>setCreate(false)} onCreated={async p=>{setCreate(false);await saved('Person added to your workspace.');await openPerson(p.id);}}/>}
     {masked&&<div className="modal-overlay"><section className="modal" role="dialog" aria-modal="true" aria-label="Existing record"><div className="modal-header"><h2>Existing record</h2><button className="icon-button" aria-label="Close masked record" onClick={()=>setMasked(null)}><X size={20}/></button></div><div className="record-card"><p>Owner: {masked.owner_name} · {masked.branch_name}</p><p>{label(masked.lead_status)} · Created {date(masked.created_at)}</p>{user.permissions?.request_access&&<ActionForm title="Request access" path="access-requests/" fields={[reason]} extra={{person_id:masked.id}} done={()=>{setMasked(null);void saved('Access requested.');}}/>}</div></section></div>}
     {detail&&<PersonPanel detail={detail} user={user} masters={masters!} close={()=>setDetail(null)} saved={saved} busy={busy} setBusy={setBusy}/>}
-    {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
+    <NotificationPopups user={user}/>{toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
   </div>;
 }
 

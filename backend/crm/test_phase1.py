@@ -69,7 +69,7 @@ class PhaseOneTests(TestCase):
         person=Person.objects.get(pk=self.create().data['id'])
         docs=self.user('docs','DOCS',self.branch)
         self.client.force_authenticate(docs)
-        self.assertEqual(self.client.get('/api/v1/people/').data['count'],0)
+        self.assertEqual(self.client.get('/api/v1/people/').data['count'],1)
         TeamMember.objects.create(person=person,user=docs)
         self.assertEqual(self.client.get('/api/v1/people/').data['count'],1)
         self.assertEqual(self.client.patch(f'/api/v1/people/{person.pk}/profile/',{'full_name':'Unauthorized'},format='json').status_code,400)
@@ -92,19 +92,13 @@ class PhaseOneTests(TestCase):
         response=self.client.post(f'/api/v1/tasks/{response.data["id"]}/update/',{'status':'COMPLETED'},format='json')
         self.assertEqual(response.status_code,200)
         p.refresh_from_db();self.assertIsNone(p.next_action_due_at)
-    def test_access_grant_masking_approval_and_notification(self):
+    def test_other_owner_profile_opens_without_access_approval(self):
         person=self.create(owner_id=self.other.pk).data['id']
         self.client.force_authenticate(self.owner)
-        results=self.client.get('/api/v1/discovery/?search=9801234567').data
-        self.assertEqual(len(results),1);self.assertNotIn('full_name',results[0]);self.assertNotIn('phone',results[0])
-        response=self.client.post('/api/v1/access-requests/',{'person_id':person,'reason':'Shared counseling case'},format='json')
-        self.assertEqual(response.status_code,201,response.data)
-        self.client.force_authenticate(self.manager)
-        decision=self.client.post(f'/api/v1/access-requests/{response.data["id"]}/decide/',{'approved':True,'reason':'Manager reviewed'},format='json')
-        self.assertEqual(decision.status_code,200,decision.data)
-        self.client.force_authenticate(self.owner)
-        self.assertEqual(self.client.get(f'/api/v1/people/{person}/').status_code,200)
-        self.assertTrue(Notification.objects.filter(recipient=self.owner,type='ACCESS_DECISION').exists())
+        response=self.client.get(f'/api/v1/people/{person}/')
+        self.assertEqual(response.status_code,200,response.data);self.assertIn('person',response.data)
+        self.assertEqual(self.client.post('/api/v1/access-requests/',{'person_id':person,'reason':'Unnecessary access'},format='json').status_code,403)
+        self.assertEqual(self.client.patch(f'/api/v1/people/{person}/profile/',{'address':'Unauthorized edit'},format='json').status_code,404)
     def test_audit_database_rejects_update_and_delete(self):
         self.create();event=AuditEvent.objects.first()
         for action in ['update','delete']:
@@ -264,7 +258,7 @@ class PhaseOneTests(TestCase):
         self.calendar.close_time=__import__('datetime').time(12,0);self.calendar.save();recompute_calendar(self.calendar)
         timer.refresh_from_db();self.assertGreater(timer.due_at,old)
         response=self.client.get('/api/v1/reports/');self.assertEqual(response.status_code,200);self.assertEqual(response.data['people'],1)
-        self.client.force_authenticate(self.user('other_manager','MANAGER',self.other_branch));self.assertEqual(self.client.get('/api/v1/reports/').data['people'],0)
+        self.client.force_authenticate(self.user('other_manager','MANAGER',self.other_branch));self.assertEqual(self.client.get('/api/v1/reports/').data['people'],1)
 
     def test_direct_endpoint_permission_matrix_every_role_action(self):
         tag=Tag.objects.create(name='Permission fixture')
