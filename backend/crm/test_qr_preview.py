@@ -14,6 +14,33 @@ import resvg_py
 
 
 class QRPreviewTests(TestCase):
+    def test_dedicated_wifi_without_campaign_and_password_preservation(self):
+        with TemporaryDirectory() as media,override_settings(MEDIA_ROOT=media):
+            created=self.client.post('/api/v1/qr/',{'label':'Guest Wi-Fi','branch_id':self.branch.pk,'content_type':'WIFI','content':{'ssid':'Office guest','password':'test-only-wifi-password','security':'WPA'},'design':{'logo':False}},format='json')
+            self.assertEqual(created.status_code,201,created.data)
+            self.assertNotIn('password',created.data['content'])
+            path='/api/v1/qr/'+created.data['id']+'/'
+            preview=self.client.post('/api/v1/qr/preview/',{'id':created.data['id'],'content':{'ssid':'Updated guest'},'design':{'logo':False}},format='json')
+            self.assertEqual(preview.status_code,200,preview.data)
+            changed=self.client.patch(path,{'content':{'ssid':'Updated guest','security':'WPA'}},format='json')
+            self.assertEqual(changed.status_code,200,changed.data)
+            qr=QRCode.objects.get(pk=created.data['id']);self.assertEqual(qr.content['password'],'test-only-wifi-password')
+            pdf=self.client.get(path+'download/?format=pdf')
+            self.assertEqual(pdf.status_code,200,getattr(pdf,'data',None))
+            import pymupdf
+            with pymupdf.open(stream=pdf.content,filetype='pdf') as document:
+                self.assertNotIn('test-only-wifi-password',document[0].get_text())
+                self.assertIn('Updated guest',document[0].get_text())
+
+    def test_dedicated_whatsapp_without_campaign_opens_contact(self):
+        with TemporaryDirectory() as media,override_settings(MEDIA_ROOT=media):
+            created=self.client.post('/api/v1/qr/',{'label':'Counsellor WhatsApp','branch_id':self.branch.pk,'content_type':'WHATSAPP','content':{'phone':'+9779812345678','message':'Hello, study advice please.'},'design':{'logo':False}},format='json')
+            self.assertEqual(created.status_code,201,created.data)
+            asset=QRCode.objects.get(pk=created.data['id']).assets.get()
+            self.assertTrue(asset.payload.startswith('https://wa.me/9779812345678?text='))
+            self.assertIn('Hello',asset.payload)
+            self.assertEqual(self.client.get('/api/v1/qr/'+created.data['id']+'/download/?format=png').status_code,200)
+
     def test_wifi_payload_escaping_and_validation(self):
         from qr.renderer import payload
         qr=QRCode(content_type='WIFI',content={'ssid':'Guest;Room','password':'test:pass,word','security':'WPA','hidden':True},design={'logo':False})

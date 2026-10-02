@@ -21,7 +21,7 @@ import resvg_py
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4,A5
 from reportlab.lib.utils import ImageReader
-from crm.models import Branch,Campaign
+from crm.models import Branch,Campaign,Source
 from crm.permissions import branch_scope
 from crm.services import audit
 from crm.operations import required_reason
@@ -44,7 +44,7 @@ def qr_preview(request):
         if 'content_type' in request.data:qr.content_type=request.data['content_type']
         if 'content' in request.data:
             if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
-            qr.content=request.data['content']
+            qr.content={**qr.content,**request.data['content']} if qr.content_type=='WIFI' else request.data['content']
     else:
         content=request.data.get('content',{})
         if not isinstance(content,dict):raise ValidationError('Content must be an object.')
@@ -68,7 +68,11 @@ def qr_list(request):
     branch=get_object_or_404(Branch,pk=request.data.get('branch_id'))
     from crm.permissions import scope,profile
     if scope(request.user,'qr')!='full' and branch.pk!=profile(request.user).branch_id:raise ValidationError('Use your own branch.')
-    campaign=get_object_or_404(Campaign,pk=request.data.get('campaign_id'),active=True)
+    if request.data.get('content_type') in ['WIFI','WHATSAPP'] and not request.data.get('campaign_id'):
+        campaign_name='Office Wi-Fi' if request.data.get('content_type')=='WIFI' else 'Office WhatsApp'
+        source,_=Source.objects.get_or_create(name=campaign_name,defaults={'active':True})
+        campaign,_=Campaign.objects.get_or_create(name=campaign_name,source=source,defaults={'active':True})
+    else:campaign=get_object_or_404(Campaign,pk=request.data.get('campaign_id'),active=True)
     label=serializers.CharField(max_length=160).run_validation(request.data.get('label'))
     kind=request.data.get('content_type','REGISTRATION')
     if kind not in ['REGISTRATION','WHATSAPP','URL','VCARD','WIFI']:raise ValidationError('Unsupported QR type.')
@@ -121,7 +125,7 @@ def qr_update(request,pk):
         qr.content_type=request.data['content_type']
     if 'content' in request.data:
         if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
-        qr.content=request.data['content']
+        qr.content={**qr.content,**request.data['content']} if qr.content_type=='WIFI' else request.data['content']
     if 'label' in request.data:qr.label=serializers.CharField(max_length=160).run_validation(request.data['label'])
     if 'status' in request.data:
         if request.data['status'] not in ['ACTIVE','PAUSED','EXPIRED']:raise ValidationError('Invalid QR status.')
@@ -173,7 +177,7 @@ def qr_download(request,pk):
         image=Image.open(io.BytesIO(png));qsize=min(width-100,300,(height-340)*image.width/image.height);qrheight=qsize*image.height/image.width;y=height-220-qrheight
         pdf.drawImage(ImageReader(io.BytesIO(png)),(width-qsize)/2,y,width=qsize,height=qrheight)
         pdf.setFont('Helvetica-Bold',16);pdf.drawCentredString(width/2,y-30,str(asset.design.get('caption','Scan to register'))[:80])
-        pdf.setFont('Helvetica',8);pdf.drawCentredString(width/2,y-50,asset.payload[:110])
+        pdf.setFont('Helvetica',8);pdf.drawCentredString(width/2,y-50,('Wi-Fi network: '+str(qr.content.get('ssid','')))[:110] if qr.content_type=='WIFI' else asset.payload[:110])
         if layout=='tent':
             # Discard the single poster page and draw two complete faces.
             output=io.BytesIO();pdf=canvas.Canvas(output,pagesize=A4);width,height=A4
