@@ -23,4 +23,4 @@ for role,db in [('consman_migrator','consman'),('consman_validator','consman_val
             else:raise AssertionError('Runtime privilege violation: '+verb)
         print(db+': app audit UPDATE/DELETE/TRUNCATE and schema CREATE denied: PASS')
 env=dict(os.environ,DATABASE_URL=url('consman_validator','consman_validation'),DJANGO_SECRET_KEY=c['django_secret'],DJANGO_DEBUG='true')
-subprocess.run([sys.executable,'manage.py','test','crm','intake','--verbosity','1','--noinput'],cwd=BASE,env=env,check=True)
+subprocess.run([sys.executable,'manage.py','test','crm','intake','admissions','--verbosity','1','--noinput'],cwd=BASE,env=env,check=True)

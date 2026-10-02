@@ -388,6 +388,10 @@ def merge_people(request):
     models=[ContactMethod,ConsentRecord,Activity,FollowUp,Task,EducationRecord,TestScore,OwnershipHistory,Notification,SlaTimer,Document]
     from intake.models import IntakeSubmission
     models.append(IntakeSubmission)
+    from admissions.models import Application,Document as AdmissionDocument,Deadline,Blocker,StudentPreference
+    if StudentPreference.objects.filter(person=merged).exists() and StudentPreference.objects.filter(person=survivor).exists():
+        raise ValidationError('Both records have admissions preferences. Reconcile these before merging.')
+    models.extend([Application,AdmissionDocument,Deadline,Blocker,StudentPreference])
     for model in models:
         ids=list(model.objects.filter(person=merged).values_list('pk',flat=True))
         moved[model._meta.label]=[str(x) for x in ids]
@@ -432,6 +436,9 @@ def reverse_merge(request,pk):
         if change.action in ['OWNER_CHANGED','TEAM_CHANGED','ACCESS_DECIDED']:raise ValidationError('Assignment or permissions changed after merge; manual reconciliation is required.')
         key,models={'CONTACT_CHANGED':('contact_id',['crm.ContactMethod']),'EDUCATION_CHANGED':('id',['crm.EducationRecord','crm.TestScore']),'TASK_CHANGED':('task_id',['crm.Task']),'FOLLOWUP_CHANGED':('followup_id',['crm.FollowUp'])}[change.action]
         if any(str(change.new.get(key)) in record.moved_objects.get(model,[]) for model in models):raise ValidationError('A moved record changed after merge; manual reconciliation is required.')
+    from admissions.models import ApplicationEvent
+    moved_apps=record.moved_objects.get('admissions.Application',[])
+    if ApplicationEvent.objects.filter(application_id__in=moved_apps,created_at__gt=record.performed_at).exists():raise ValidationError('Moved applications changed after merge; manual reconciliation is required.')
     for model_name,ids in record.moved_objects.items():
         if model_name in ['tags_before','tags_after','relationship_changes']:continue
         model=apps.get_model(model_name)

@@ -10,3 +10,6 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 -- consman_app must not own tables, inherit consman_migrator, or be SUPERUSER.
 -- Reapply this script after schema migrations; the trigger additionally rejects
 -- UPDATE/DELETE even if a permission is accidentally granted later.
+
+REVOKE UPDATE, DELETE, TRUNCATE ON admissions_applicationevent, admissions_documentversion FROM consman_app;
+REVOKE DELETE, TRUNCATE ON admissions_workflowtemplate FROM consman_app;
