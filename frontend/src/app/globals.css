@@ -10,3 +10,96 @@
 .password-input{display:block;position:relative;width:100%}.password-input input{width:100%;padding-right:46px!important;box-sizing:border-box}.password-input .password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:0;background:transparent;color:#475569;cursor:pointer}.password-input .password-toggle:focus-visible{outline:2px solid #1e40af;outline-offset:1px;border-radius:4px}
 
 .admissions-workspace .admission-row{display:flex;width:100%;align-items:center;justify-content:space-between;text-align:left;padding:20px;border-bottom:1px solid #e2e8f0;gap:16px;background:white}.admission-row p{margin:6px 0}.admissions-metrics{margin:16px 0}.admission-milestones{display:flex;flex-wrap:wrap;gap:12px;padding:20px;list-style:none;background:#f1f5f9;border-radius:12px}.admission-milestones li{padding:8px;color:#64748b}.admission-milestones .current{background:#1e3a8a;color:white;border-radius:8px}.application-detail h3{margin-top:28px}.admissions-workspace .card{margin-top:16px}.admissions-workspace input[type=file]{max-width:100%}.admissions-workspace .record-card .toolbar{flex-wrap:wrap}.admissions-workspace .inline-form{width:100%}
+
+.mobile-header,.navigation-backdrop,.drawer-close{display:none}
+.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.form-grid>*,.metric,.record-card,.studio-grid>*,.comparison>*,.admission-row>div{min-width:0}
+.record-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
+.table-scroll{max-width:100%;overscroll-behavior-x:contain}
+.tabs{max-width:100%;overflow-x:auto;gap:20px;scrollbar-width:thin}
+.tabs button{flex-shrink:0;white-space:nowrap;min-height:44px}
+.card-footer,.card-heading,.attention-strip{flex-wrap:wrap}
+.record-card a,.application-detail h2{overflow-wrap:anywhere}
+.person-panel{max-width:100vw;height:100dvh}
+.modal{max-height:calc(100dvh - 24px)}
+.visitor-card>img{max-width:100%;height:auto}
+
+@media(max-width:900px){
+  .app-shell{display:block}
+  .mobile-header{display:flex;position:sticky;top:0;z-index:50;height:64px;align-items:center;justify-content:space-between;padding:0 16px;background:white;border-bottom:1px solid var(--border)}
+  .mobile-header img{width:110px;height:60px;object-fit:contain}
+  .mobile-header button{width:44px;height:44px}
+  .sidebar{position:fixed;inset:64px auto 0 0;width:min(86vw,300px);height:calc(100dvh - 64px);padding:20px 16px;z-index:45;display:none;overflow-y:auto;border-right:1px solid var(--border)}
+  .sidebar.nav-open{display:flex;flex-direction:column}
+  .drawer-close{display:inline-flex;align-self:flex-end;min-width:44px;min-height:44px;margin-bottom:8px}
+  .sidebar .official-logo{display:none}
+  .sidebar .workspace{display:flex;margin:0 0 20px}
+  .sidebar .nav-label{display:block}
+  .sidebar nav{display:flex;flex-direction:column;flex-wrap:nowrap;overflow:visible;margin:0 0 18px;flex-shrink:0;gap:4px}
+  .sidebar nav:last-of-type{margin-top:0}
+  .sidebar nav button{width:100%;min-height:44px;padding:10px 12px;font-size:13px;justify-content:flex-start}
+  .sidebar-bottom{display:block;margin-top:auto}
+  .sidebar .help-card{display:none}
+  .navigation-backdrop{display:block;position:fixed;inset:64px 0 0;z-index:40;background:#0f172a80;width:100%}
+  .main-shell{margin-left:0}
+  .topbar{padding:0 20px;height:52px}
+  main{padding:24px 20px}
+  .login-page{grid-template-columns:1fr}
+  .login-story{padding:24px 32px}
+  .login-story>div:nth-child(2){padding:24px 0 0}
+  .login-story h1{font-size:28px}
+  .login-story p,.login-story .story-line,.login-story>small{display:none}
+  .login-form{padding:36px 24px}
+}
+
+@media(max-width:600px){
+  main{padding:20px 12px}
+  .topbar{padding:0 12px;gap:8px}
+  .breadcrumb{min-width:0;gap:6px}
+  .breadcrumb strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:48vw}
+  .topbar-right{gap:6px;flex-shrink:0}
+  .page-heading{flex-direction:column;align-items:stretch;gap:16px;margin-bottom:20px}
+  .page-heading>.primary{align-self:flex-start;min-height:44px;padding:10px 16px;font-size:13px}
+  .page-heading h1{font-size:25px}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+  .span-2{grid-column:1/-1}
+  .filters{padding:16px;gap:10px}
+  .filters>select,.filters>input,.filters>.search-field{width:100%;min-width:0;max-width:100%}
+  input,select,textarea{font-size:16px;min-height:44px}
+  input[type=checkbox],input[type=radio]{min-height:0;flex-shrink:0}
+  .primary,.secondary{min-height:44px;max-width:100%;white-space:normal;text-align:center}
+  .icon-button{min-width:44px;min-height:44px}
+  .toolbar{gap:10px}
+  .toolbar>label{width:100%}
+  .tabs{gap:16px}
+  .record-card{padding:16px}
+  .inline-form{padding:16px}
+  .person-panel{padding:16px}
+  .person-tools{padding:12px 0}
+  .person-facts{grid-template-columns:minmax(0,1fr)}
+  .person-hero{gap:12px}
+  .person-hero h1{font-size:23px;overflow-wrap:anywhere}
+  .modal-overlay{padding:8px}
+  .modal{max-height:calc(100dvh - 16px)}
+  .modal form,.modal-header{padding:16px}
+  .metric{padding:14px 12px}
+  .metric-top{gap:6px}
+  .metric>strong{font-size:28px}
+  .card-footer{gap:12px;padding:14px 16px}
+  .card-footer button{min-height:44px}
+  .admissions-workspace .admission-row{align-items:flex-start;flex-direction:column;padding:16px;gap:10px}
+  .admission-milestones{gap:4px;padding:12px}
+  .visitor-page{padding:12px 8px}
+  .visitor-card{padding:20px 16px}
+  .visitor-card h1{font-size:25px}
+  .visitor-card .checkbox{align-items:flex-start}
+  .authenticator-qr{max-width:100%;height:auto}
+}
+
+@media(max-width:360px){
+  .metrics{grid-template-columns:minmax(0,1fr)}
+  .topbar-right{font-size:9px}
+  .card-heading{padding:16px}
+  .pipeline-label{width:100px}
+  .pipeline button{gap:8px}
+}

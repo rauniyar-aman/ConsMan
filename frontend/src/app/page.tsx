@@ -7,7 +7,7 @@ import {Workspace,type ExtraView} from '@/components/workspace';
 import {ActionForm,choices,reason} from '@/components/action-form';
 import {Admissions} from '@/components/admissions';
 import {PersonTools} from '@/components/person-tools';
-import { ArrowDownLeft, ArrowRight, Bell, CalendarDays, Check, ChevronRight, CircleHelp, Clock3, GraduationCap, LayoutDashboard, LogOut, Plus, Search, Users, X, Flame, ListTodo, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, Bell, CalendarDays, Check, ChevronRight, CircleHelp, Clock3, GraduationCap, LayoutDashboard, LogOut, Menu, Plus, Search, Users, X, Flame, ListTodo, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { api, ApiError, date, label, type User, type Person, type Dashboard, type Masters, type Detail, type FollowUp } from '@/lib/api';
 
 type View = 'admissions' | 'dashboard' | 'people' | 'followups' | ExtraView;
@@ -27,6 +27,19 @@ export default function Home() {
   const [masked,setMasked]=useState<{id:string;owner_name:string;branch_name:string;lead_status:string;created_at:string}|null>(null);
   const [unread,setUnread]=useState(0);
   const [create,setCreate] = useState(false), [toast,setToast] = useState(''), [busy,setBusy] = useState(false);
+  const [navOpen,setNavOpen]=useState(false);
+  useEffect(()=>{const media=window.matchMedia('(max-width:900px)');const resized=()=>{if(!media.matches)setNavOpen(false);};media.addEventListener('change',resized);return()=>media.removeEventListener('change',resized);},[]);
+  useEffect(()=>{
+    if(!navOpen)return;
+    const previous=document.activeElement as HTMLElement|null,oldOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    const sidebar=document.getElementById('workspace-navigation');
+    const controls=()=>Array.from(sidebar?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href]')||[]).filter(el=>el.getClientRects().length>0);
+    controls()[0]?.focus();
+    function keydown(event:KeyboardEvent){if(event.key==='Escape')setNavOpen(false);if(event.key!=='Tab')return;const items=controls(),first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+    document.addEventListener('keydown',keydown);
+    return()=>{document.body.style.overflow=oldOverflow;document.removeEventListener('keydown',keydown);previous?.focus();};
+  },[navOpen]);
   const dialogOpen = create || !!detail || !!masked;
   useEffect(()=>{
     const titles:Record<View,string>={dashboard:'Overview',people:'All people',followups:'Follow-ups',admissions:'Admissions',tasks:'Tasks',notifications:'Notifications',assisted:'Staff-assisted intake',intake:'Intake review',qr:'QR Studio',duplicates:'Duplicate review',access:'Access requests',imports:'Excel imports',reports:'Reports & export',audit:'Audit history',settings:'Settings'};
@@ -74,13 +87,16 @@ export default function Home() {
   useEffect(()=>{if(!user)return;const timer=setInterval(()=>void refresh(),60000);return()=>clearInterval(timer);},[user,refresh]);
   async function openPerson(id:string) {try {const r=await api<Detail & {masked?:boolean;record:NonNullable<typeof masked>}>(`people/${id}/`);if(r.masked)setMasked(r.record);else setDetail(r);}catch(e){setError(errorMessage(e));}}
   async function saved(message:string) {setToast(message);await refresh();if(detail)await openPerson(detail.person.id);}
-  function navigate(next:View, filter='') {setView(next);setSelection([]);setBulk('');setAdvanced({});setAttention(filter);setPage(1);setSearch('');setStatus('');setTemperature('');}
+  function navigate(next:View, filter='') {setNavOpen(false);setView(next);setSelection([]);setBulk('');setAdvanced({});setAttention(filter);setPage(1);setSearch('');setStatus('');setTemperature('');}
   if (loading) return <div className="loading"><GraduationCap size={36}/><p>Opening your workspace…</p></div>;
   if (!user) return <Login onLogin={setUser} initialError={error}/>;
   const canCreate = ['ADMIN','MANAGER','COUNSELOR'].includes(user.role);
   const greeting = user.name.split(' ')[0];
   return <div className="app-shell">
-    <aside className="sidebar">
+    <header className="mobile-header"><Image src="/logo-consman.jpg" alt="ConsMan" width={110} height={60}/><button className="icon-button" aria-label={navOpen?'Close navigation':'Open navigation'} aria-controls="workspace-navigation" aria-expanded={navOpen} onClick={()=>setNavOpen(!navOpen)}>{navOpen?<X size={24}/>:<Menu size={24}/>}</button></header>
+    {navOpen&&<button className="navigation-backdrop" aria-label="Close navigation" tabIndex={-1} onClick={()=>setNavOpen(false)}/>}
+    <aside id="workspace-navigation" className={`sidebar${navOpen?' nav-open':''}`}>
+      <button className="drawer-close icon-button" aria-label="Close navigation menu" onClick={()=>setNavOpen(false)}><X size={22}/></button>
       <div className="official-logo"><Image src="/logo-consman.jpg" alt="ConsMan — Education Consultancy CRM" width={176} height={96} priority/></div>
       <div className="workspace"><span className="workspace-icon">BE</span><div><strong>The Blessing Edu</strong><small>{user.branch} workspace</small></div><ChevronRight size={14}/></div>
       <div className="nav-label">WORKSPACE</div>
@@ -91,7 +107,7 @@ export default function Home() {
       </nav>
       {user.permissions?.view&&<nav><button className={view==='admissions'?'active':''} onClick={()=>navigate('admissions')}><GraduationCap size={18}/>Admissions</button></nav>}<div className="nav-label">PLATFORM</div>
       <nav>{([{id:'tasks',title:'Tasks',permission:'work'},{id:'notifications',title:'Notifications'},{id:'assisted',title:'Staff-assisted intake',permission:'create'},{id:'intake',title:'Intake review',permission:'intake'},{id:'qr',title:'QR Studio',permission:'qr'},{id:'duplicates',title:'Duplicate review',permission:'review'},{id:'access',title:'Access requests',permission:'request_access',manager:true},{id:'imports',title:'Excel imports',permission:'import'},{id:'reports',title:'Reports & export',permission:'export'},{id:'audit',title:'Audit history',permission:'audit'},{id:'settings',title:'Settings',manager:true}].filter(n=>!n.permission&&!n.manager||!!user.permissions?.[n.permission||'']||n.manager&&['ADMIN','MANAGER'].includes(user.role))).map(n=><button key={n.id} className={view===n.id?'active':''} onClick={()=>navigate(n.id as View)}><ListTodo size={17}/>{n.title}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="help-card"><ShieldCheck size={19}/><strong>One person. One journey.</strong><p>Every interaction, in one place.</p></div><div className="profile"><div className="avatar">{user.name.split(' ').map(n=>n[0]).slice(0,2).join('')}</div><div><strong>{user.name}</strong><small>{label(user.role)}</small></div><button aria-label="Sign out" title="Sign out" onClick={async()=>{try{await api('auth/logout/','POST');setUser(null);setDetail(null);}catch(e){setError(errorMessage(e));}}}><LogOut size={16}/></button></div></div>
+      <div className="sidebar-bottom"><div className="help-card"><ShieldCheck size={19}/><strong>One person. One journey.</strong><p>Every interaction, in one place.</p></div><div className="profile"><div className="avatar">{user.name.split(' ').map(n=>n[0]).slice(0,2).join('')}</div><div><strong>{user.name}</strong><small>{label(user.role)}</small></div><button aria-label="Sign out" title="Sign out" onClick={async()=>{try{await api('auth/logout/','POST');setNavOpen(false);setUser(null);setDetail(null);}catch(e){setError(errorMessage(e));}}}><LogOut size={16}/></button></div></div>
     </aside>
     <div className="main-shell">
       <header className="topbar"><div className="breadcrumb">Workspace <ChevronRight size={13}/><strong>{view==='dashboard'?'Overview':view==='people'?'All people':view==='followups'?'Follow-ups':({qr:'QR Studio',intake:'Intake review',assisted:'Staff-assisted intake',duplicates:'Duplicate review',imports:'Excel imports',access:'Access requests',reports:'Reports & export'} as Record<string,string>)[view]||label(view)}</strong></div><div className="topbar-right"><span className="branch-dot"/>{user.branch}<span className="separator"/><span className="timezone">NPT · UTC +5:45</span><button title="View follow-ups requiring attention" aria-label="View overdue follow-ups" onClick={()=>navigate('notifications')}><Bell size={18}/>{!!unread&&<i/>}</button></div></header>
