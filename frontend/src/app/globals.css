@@ -149,3 +149,8 @@
   .visitor-card fieldset{padding:12px 8px}
   .visitor-card h1,.visitor-card>p,.visitor-card>.eyebrow{padding-inline:4px}
 }
+
+.visitor-card .phone-input{display:grid;grid-template-columns:minmax(110px,38%) minmax(0,1fr);gap:8px;align-items:start}
+.visitor-card .phone-input select{overflow:hidden;text-overflow:ellipsis;padding-inline:8px}
+.visitor-card .phone-input input[type=hidden]{display:none}
+@media(max-width:360px){.visitor-card .phone-input{grid-template-columns:110px minmax(0,1fr);gap:6px}}
