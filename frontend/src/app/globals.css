@@ -117,3 +117,5 @@
 .visitor-form-modal{max-width:850px}.form-field-setting{display:flex;flex-wrap:wrap;gap:16px;align-items:center;border-bottom:1px solid #e2e8f0;padding:10px 0}.form-field-setting>span{flex:1;min-width:160px}.visitor-card fieldset{min-width:0;border:1px solid #e2e8f0;padding:16px;border-radius:8px}.visitor-card legend{font-weight:700;padding:0 6px}.visitor-card textarea{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:11px}.paper-answer{display:block;border-bottom:1px solid #aaa;height:25px}
 
 .profile-page{padding:24px;min-height:100vh}.profile-page .person-panel{width:100%;max-width:1200px;height:auto;min-height:calc(100vh - 48px);overflow:visible;margin:auto;border:1px solid var(--border);border-radius:8px}.profile-page .person-facts{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.visitor-form-modal{padding:20px}@media(max-width:640px){.profile-page{padding:10px}.profile-page .person-panel{padding:16px}.profile-page .person-facts{grid-template-columns:1fr 1fr}}
+
+.profile-edit-modal .inline-form{margin:0;border:0;background:white}.profile-edit-modal .inline-form>h3{display:none}.profile-edit-modal .modal-header{align-items:center}
