@@ -29,3 +29,18 @@ For physical papers, select a frontdesk officer and scanning due date in the cou
 ## Follow-up history
 
 Every conversation is a separate follow-up. Complete it with an outcome, then schedule the next conversation. Completed entries cannot be reopened or overwritten. Select **Show all follow-up history** in Follow-ups to see past and current records, including completed dates, times, instructions and outcomes in Nepal time. Rescheduling retains previous dates and notes in the activity timeline and audit history.
+
+
+## Visitor form configuration
+
+In QR Studio, each saved registration QR has **Edit / preview / print form**.
+Edit the title and introduction, show or hide reference fields, and mark them required.
+Full name, mobile number and consent cannot be disabled. Address and highest education
+are required by default; supporting details are optional. Save applies the settings
+to the permanent QR link. Preview shows unsaved settings without submitting answers.
+Print opens a blank paper version; choose a printer or Save as PDF in the print dialog.
+Paper copies include consent, signature and date lines. Staff still verify the number
+by OTP after entering paper answers.
+
+Profiles now open in a separate tab at `/people/<person-id>`. Reloading or bookmarking
+that page keeps the same profile. Staff authentication and existing access scopes apply.

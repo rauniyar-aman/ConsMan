@@ -47,7 +47,7 @@ class PhaseOneTests(TestCase):
         self.provider=MemoryProvider()
         self.public=APIClient()
     def submit(self,**kwargs):
-        values={'code':self.qr.code,'full_name':'Visitor Example','phone':'9801234599','consent':True,'turnstile_token':'development',**kwargs}
+        values={'code':self.qr.code,'full_name':'Visitor Example','phone':'9801234599','consent':True,'turnstile_token':'development','address':'Kathmandu','highest_education':'Bachelor',**kwargs}
         with patch('intake.services.get_provider',return_value=self.provider):
             result=self.public.post('/api/public/intake/submissions/',values,format='json',HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()))
         self.assertEqual(result.status_code,201,result.data)
@@ -159,7 +159,7 @@ class PhaseOneTests(TestCase):
     def test_provider_failure_saved_and_manager_only_queue(self):
         with patch('intake.services.get_provider') as mock:
             mock.return_value.name='failure';mock.return_value.send.side_effect=RuntimeError('unavailable')
-            response=self.public.post('/api/public/intake/submissions/',{'code':self.qr.code,'full_name':'Visitor','phone':'9801234599','consent':True,'turnstile_token':'development'},format='json',HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()))
+            response=self.public.post('/api/public/intake/submissions/',{'code':self.qr.code,'full_name':'Visitor','phone':'9801234599','consent':True,'turnstile_token':'development','address':'Kathmandu','highest_education':'Bachelor'},format='json',HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()))
         self.assertEqual(response.status_code,201,response.data);self.assertTrue(response.data['send_failed']);self.assertEqual(Person.objects.count(),0)
         self.client.force_authenticate(self.owner)
         self.assertEqual(self.client.get('/api/v1/intake/submissions/').status_code,403)
@@ -174,7 +174,7 @@ class PhaseOneTests(TestCase):
             self.assertEqual(response.status_code,400);self.assertEqual(response.data['attempts_left'],4-i)
         self.assertEqual(OtpChallenge.objects.get().status,'LOCKED');self.assertEqual(Person.objects.count(),0)
     def test_public_replay_and_honeypot_and_missing_turnstile(self):
-        key=str(uuid.uuid4());data={'code':self.qr.code,'full_name':'Visitor','phone':'9801234599','consent':True,'turnstile_token':'development'}
+        key=str(uuid.uuid4());data={'code':self.qr.code,'full_name':'Visitor','phone':'9801234599','consent':True,'turnstile_token':'development','address':'Kathmandu','highest_education':'Bachelor'}
         with patch('intake.services.get_provider',return_value=self.provider):
             a=self.public.post('/api/public/intake/submissions/',data,format='json',HTTP_IDEMPOTENCY_KEY=key)
             b=self.public.post('/api/public/intake/submissions/',data,format='json',HTTP_IDEMPOTENCY_KEY=key)
@@ -231,7 +231,7 @@ class PhaseOneTests(TestCase):
             for frame in ['none','border','caption','poster']:
                 self.qr.design={'logo':False,'frame':frame};png,svg,payload,_=render(self.qr);self.assertTrue(png);self.assertTrue(payload);self.assertTrue(svg)
         self.qr.status='PAUSED';self.qr.save()
-        result=self.public.post('/api/public/intake/submissions/',{'code':self.qr.code,'full_name':'Inactive visitor','phone':'9801234599','consent':True,'turnstile_token':'development'},format='json',HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()))
+        result=self.public.post('/api/public/intake/submissions/',{'code':self.qr.code,'full_name':'Inactive visitor','phone':'9801234599','consent':True,'turnstile_token':'development','address':'Kathmandu','highest_education':'Bachelor'},format='json',HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()))
         self.assertEqual(result.status_code,400);self.assertFalse(IntakeSubmission.objects.exists())
 
     def test_import_review_override_and_edited_rollback_block(self):

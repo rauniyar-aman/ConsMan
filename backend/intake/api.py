@@ -25,6 +25,7 @@ from .models import IntakeSubmission,OtpChallenge,MessageDelivery,IntakeReview
 from .services import policy,resume_token,resume,consume,create_challenge,deliver,submission_result,process_verified
 from .providers import digest
 from .network import client_ip
+from .form_config import form_config,validate_answers
 
 class VisitorSerializer(serializers.Serializer):
     code=serializers.CharField(max_length=24)
@@ -91,7 +92,7 @@ def public_qr(request,code):
     qr=get_object_or_404(QRCode.objects.select_related('branch'),code=code)
     enabled=active(qr) and qr.content_type=='REGISTRATION'
     if enabled:QRCode.objects.filter(pk=qr.pk).update(scan_count=F('scan_count')+1)
-    return Response({'active':enabled,'branch':qr.branch.name,'turnstile_site_key':settings.TURNSTILE_SITE_KEY,'development_bypass':settings.DEBUG and settings.INTAKE_DEV_BYPASS,'whatsapp_available':bool(settings.WHATSAPP_GATEWAY_URL),'message':'This registration link is not active. Please see our front desk.' if not enabled else ''})
+    return Response({'active':enabled,'form':form_config(qr.content),'branch':qr.branch.name,'turnstile_site_key':settings.TURNSTILE_SITE_KEY,'development_bypass':settings.DEBUG and settings.INTAKE_DEV_BYPASS,'whatsapp_available':bool(settings.WHATSAPP_GATEWAY_URL),'message':'This registration link is not active. Please see our front desk.' if not enabled else ''})
 
 @extend_schema(request=VisitorSerializer,responses=OpenApiTypes.OBJECT)
 @api_view(['POST'])
@@ -112,6 +113,7 @@ def submit(request):
     if existing:
         if not hmac.compare_digest(existing.request_hash,request_hash):raise ValidationError('Idempotency key was used for different information.')
         return Response(submission_result(existing))
+    validate_answers(qr,values)
     turnstile(values.pop('turnstile_token'))
     values.pop('website',None)
     ip_hash=digest(client_ip(request))

@@ -126,7 +126,9 @@ def qr_update(request,pk):
         qr.content_type=request.data['content_type']
     if 'content' in request.data:
         if not isinstance(request.data['content'],dict):raise ValidationError('Content must be an object.')
+        previous_form=qr.content.get('form')
         qr.content={**qr.content,**request.data['content']} if qr.content_type=='WIFI' else request.data['content']
+        if qr.content_type=='REGISTRATION' and previous_form is not None and 'form' not in request.data['content']:qr.content['form']=previous_form
     if 'label' in request.data:qr.label=serializers.CharField(max_length=160).run_validation(request.data['label'])
     if 'status' in request.data:
         if request.data['status'] not in ['ACTIVE','PAUSED','EXPIRED']:raise ValidationError('Invalid QR status.')
@@ -219,6 +221,9 @@ def staff_library(request):
 
 
 def validate_staff_contact(qr):
+    if qr.content_type=='REGISTRATION':
+        from intake.form_config import form_config
+        form_config(qr.content)
     if qr.content_type!='WHATSAPP' or qr.content.get('staff_user_id') is None:return
     from django.contrib.auth.models import User
     staff_id=serializers.IntegerField().run_validation(qr.content['staff_user_id'])

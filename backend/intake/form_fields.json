@@ -1,0 +1,346 @@
+[
+  {
+    "name": "full_name",
+    "label": "Full name",
+    "section": "Personal details",
+    "kind": "text",
+    "options": [],
+    "required": true,
+    "locked": true,
+    "limit": 160
+  },
+  {
+    "name": "phone",
+    "label": "Mobile number",
+    "section": "Personal details",
+    "kind": "phone",
+    "options": [],
+    "required": true,
+    "locked": true,
+    "limit": 160
+  },
+  {
+    "name": "alternate_phone",
+    "label": "WhatsApp / alternate number",
+    "section": "Personal details",
+    "kind": "phone",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "email",
+    "label": "Email",
+    "section": "Personal details",
+    "kind": "email",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 254
+  },
+  {
+    "name": "address",
+    "label": "Address",
+    "section": "Personal details",
+    "kind": "text",
+    "options": [],
+    "required": true,
+    "locked": false,
+    "limit": 255
+  },
+  {
+    "name": "guardian_name",
+    "label": "Guardian name",
+    "section": "Personal details",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "guardian_contact",
+    "label": "Guardian contact",
+    "section": "Personal details",
+    "kind": "phone",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "highest_education",
+    "label": "Highest education",
+    "section": "Education",
+    "kind": "select",
+    "options": [
+      "+2 / High School",
+      "Diploma",
+      "Bachelor",
+      "Master",
+      "Other"
+    ],
+    "required": true,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "institute",
+    "label": "Institute name",
+    "section": "Education",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "degree_stream",
+    "label": "Degree / stream",
+    "section": "Education",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "grade_or_percent",
+    "label": "GPA / percentage",
+    "section": "Education",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "passed_year",
+    "label": "Passed year",
+    "section": "Education",
+    "kind": "number",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "work_experience",
+    "label": "Work experience",
+    "section": "Education",
+    "kind": "textarea",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 3000
+  },
+  {
+    "name": "test_IELTS",
+    "label": "Ielts score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_PTE",
+    "label": "Pte score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_TOEFL",
+    "label": "Toefl score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_DUOLINGO",
+    "label": "Duolingo score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_SAT",
+    "label": "Sat score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_GRE",
+    "label": "Gre score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_GMAT",
+    "label": "Gmat score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_OTHER",
+    "label": "Other score",
+    "section": "Test scores",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 40
+  },
+  {
+    "name": "test_status",
+    "label": "Test status",
+    "section": "Test scores",
+    "kind": "select",
+    "options": [
+      "TAKEN",
+      "PLANNED",
+      "NOT_TAKEN"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "preferred_country",
+    "label": "Interested country",
+    "section": "Study plans",
+    "kind": "select",
+    "options": [
+      "Not decided",
+      "United Kingdom",
+      "United States",
+      "Australia",
+      "Canada",
+      "South Korea",
+      "New Zealand",
+      "Europe",
+      "Other"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "study_levels",
+    "label": "Study level",
+    "section": "Study plans",
+    "kind": "select",
+    "options": [
+      "Not decided",
+      "Diploma",
+      "Bachelor",
+      "Master",
+      "Mres",
+      "PhD",
+      "Language course"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "preferred_course",
+    "label": "Course / subject",
+    "section": "Study plans",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "preferred_intake",
+    "label": "Preferred intake",
+    "section": "Study plans",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 80
+  },
+  {
+    "name": "preferred_university",
+    "label": "University / college",
+    "section": "Study plans",
+    "kind": "text",
+    "options": [],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "previous_visa_refusal",
+    "label": "Previous visa refusal",
+    "section": "Study plans",
+    "kind": "select",
+    "options": [
+      "UNKNOWN",
+      "YES",
+      "NO"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  },
+  {
+    "name": "heard_about_us",
+    "label": "How did you hear about us?",
+    "section": "Contact and consent",
+    "kind": "select",
+    "options": [
+      "Facebook",
+      "Instagram",
+      "TikTok",
+      "Google",
+      "Referral",
+      "Education Fair",
+      "Walk-in",
+      "Other"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 100
+  },
+  {
+    "name": "best_contact_method",
+    "label": "Best contact method",
+    "section": "Contact and consent",
+    "kind": "select",
+    "options": [
+      "WHATSAPP",
+      "CALL"
+    ],
+    "required": false,
+    "locked": false,
+    "limit": 160
+  }
+]
