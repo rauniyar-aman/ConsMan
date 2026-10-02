@@ -25,3 +25,7 @@ Optionally schedule a follow-up with a date in Nepal time, channel, assigned fro
 No document upload is needed to save counseling or register a visitor. The counselor can display their WhatsApp QR so the visitor can send files. In **Profile documents**, add an optional document and upload the received PDF, PNG or JPEG (under 5 MB).
 
 For physical papers, select a frontdesk officer and scanning due date in the counseling panel. Saving creates a scanning task and notification. Frontdesk scans the papers, opens the visitor profile, uploads the files, and completes the task. Counselors review document status. Student accounts are not required.
+
+## Follow-up history
+
+Every conversation is a separate follow-up. Complete it with an outcome, then schedule the next conversation. Completed entries cannot be reopened or overwritten. Select **Show all follow-up history** in Follow-ups to see past and current records, including completed dates, times, instructions and outcomes in Nepal time. Rescheduling retains previous dates and notes in the activity timeline and audit history.

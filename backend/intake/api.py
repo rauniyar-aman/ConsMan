@@ -322,7 +322,7 @@ def paper_registration(request):
 def verify_otp(request,pk,staff_user=None):
     with transaction.atomic():
         submission=resume(request,pk,True)
-        if submission.verified_at:return Response({'verified':True,'message':'Thank you. Our team will contact you about your next steps.'})
+        if submission.verified_at:return Response({'verified':True,'person_id':str(submission.person_id) if staff_user and submission.person_id else None,'message':'Thank you. Our team will contact you about your next steps.'})
         challenge=submission.challenges.select_for_update(of=('self',)).order_by('-last_sent_at').first()
         if not challenge:raise ValidationError('No code is available. Your details are saved.')
         if challenge.status=='LOCKED':return Response({'code':'otp_locked','message':'Your details are saved. Ask the front desk to verify your number.','attempts_left':0},status=400)

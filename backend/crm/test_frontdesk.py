@@ -114,8 +114,35 @@ class FrontdeskWorkflowTests(TestCase):
         credentials=r.data;verify=f'/api/v1/intake/paper/{credentials["id"]}/verify/'
         wrong=self.client.post(verify,{'code':'wrong'},format='json',HTTP_X_RESUME_TOKEN=credentials['resume_token']);self.assertEqual(wrong.status_code,400)
         verified=self.client.post(verify,{'code':provider.code},format='json',HTTP_X_RESUME_TOKEN=credentials['resume_token']);self.assertEqual(verified.status_code,200,verified.data)
+        retry=self.client.post(verify,{'code':provider.code},format='json',HTTP_X_RESUME_TOKEN=credentials['resume_token']);self.assertEqual(retry.data['person_id'],verified.data['person_id'])
         person=Person.objects.get(pk=verified.data['person_id']);self.assertIsNone(person.owner);self.assertEqual(person.preferred_university,'Test university');self.assertEqual(person.education.count(),1)
         self.assertEqual(IntakeSubmission.objects.get().verified_by_staff,self.desk)
         self.assertEqual(self.client.post(f'/api/v1/people/{person.pk}/reassign/',{'owner_id':self.uk.pk,'reason':'UK counselor'},format='json').status_code,200)
         person.refresh_from_db();self.assertEqual(person.owner,self.uk)
         self.assertEqual(self.client.post('/api/v1/intake/assisted/',payload,format='json').status_code,403)
+
+    def test_each_completed_followup_keeps_day_time_outcome_and_reschedule_history(self):
+        from unittest.mock import patch
+        from .models import AuditEvent, Activity
+        first_time=timezone.now()-timedelta(days=2)
+        second_time=first_time+timedelta(days=1)
+        ids=[]
+        for index,when in enumerate([first_time,second_time]):
+            r=self.client.post(f'/api/v1/people/{self.person.pk}/followups/',{'subject':f'Visitor call {index+1}','method':'CALL','due_at':when.isoformat(),'notes':'Discuss pending documents'},format='json')
+            self.assertEqual(r.status_code,201,r.data);ids.append(r.data['id'])
+            with patch('crm.api.timezone.now',return_value=when):
+                r=self.client.post(f'/api/v1/followups/{ids[-1]}/complete/',{'outcome':f'Day {index+1} discussion recorded'},format='json')
+            self.assertEqual(r.status_code,200,r.data)
+        self.assertEqual(self.client.get('/api/v1/followups/').data,[])
+        history=self.client.get('/api/v1/followups/?include_completed=1').data
+        self.assertEqual(len(history),2);self.assertEqual([x['id'] for x in history],list(reversed(ids)))
+        self.assertEqual(FollowUp.objects.get(pk=ids[0]).completed_at,first_time)
+        self.assertEqual(FollowUp.objects.get(pk=ids[1]).completed_at,second_time)
+        r=self.client.post(f'/api/v1/followups/{ids[0]}/update/',{'status':'OPEN','notes':'Overwrite'},format='json')
+        self.assertEqual(r.status_code,400)
+        self.assertEqual(FollowUp.objects.get(pk=ids[0]).outcome,'Day 1 discussion recorded')
+        third=FollowUp.objects.create(person=self.person,owner=self.counselor,subject='Next call',due_at=second_time+timedelta(days=2),notes='Original instructions')
+        old_due=third.due_at.isoformat()
+        r=self.client.post(f'/api/v1/followups/{third.pk}/update/',{'due_at':(third.due_at+timedelta(days=1)).isoformat(),'notes':'New instructions'},format='json');self.assertEqual(r.status_code,200,r.data)
+        audit=AuditEvent.objects.get(action='FOLLOWUP_CHANGED');self.assertEqual(audit.old['due_at'],old_due);self.assertEqual(audit.old['notes'],'Original instructions')
+        self.assertIn('Original instructions',Activity.objects.get(subject='Follow-up updated: Next call').notes)

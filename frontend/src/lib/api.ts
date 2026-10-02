@@ -2,7 +2,7 @@ import type {components} from './generated-api';
 export type User = components['schemas']['SessionUser'];
 export type CreatePersonInput = components['schemas']['CreatePerson'];
 export type Person = { id: string; ref: string; full_name: string; phone: string; email: string; branch_name: string; owner_name: string; source_name: string; stage: string; lead_status: string; temperature: string; preferred_country: string; preferred_course: string; address: string; next_action_due_at: string | null; created_at: string };
-export type FollowUp = { id: number; person_id: string; person_name: string; person_ref: string; subject: string; method: string; due_at: string; completed_at: string | null; outcome: string; notes?:string; owner_name?:string };
+export type FollowUp = { id: number; person_id: string; person_name: string; person_ref: string; subject: string; method: string; due_at: string; completed_at: string | null; outcome: string; notes?:string; owner_name?:string; created_at?:string; status?:string };
 export type Activity = { id: number; type: string; subject: string; notes: string; actor: string; performed_at: string };
 export type Detail = { person: Person & Record<string,unknown>; timeline:{id:string;kind:string;subject:string;notes:string;actor:string;at:string;edited:boolean}[]; activities: Activity[]; followups: FollowUp[]; contacts:Row[]; education:Row[]; test_scores:Row[]; tasks:Row[]; team:Row[]; sla_timers:Row[] };
 export type Row = Record<string,unknown>;
@@ -22,4 +22,4 @@ export async function api<T>(path: string, method = 'GET', body?: unknown, key?:
 }
 export function message(error:unknown) { return error instanceof ApiError ? `${error.message}${error.data.fields?' '+JSON.stringify(error.data.fields):''}` : error instanceof Error?error.message:'Please try again.'; }
 export const label = (value: string) => value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
-export const date = (value: string) => new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Kathmandu',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(value));
+export const date = (value: string) => new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Kathmandu',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value));

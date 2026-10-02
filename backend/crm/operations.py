@@ -311,6 +311,8 @@ def task_update(request,pk):
 def followup_update(request,pk):
     item=get_object_or_404(FollowUp.objects.select_for_update(of=('self',)),pk=pk)
     person=object_person(request,item.person_id,'work',True)
+    if item.completed_at or item.status=='COMPLETED':raise ValidationError('Completed follow-ups are retained. Schedule a new follow-up for the next conversation.')
+    old={'due_at':item.due_at.isoformat(),'status':item.status,'notes':item.notes}
     require_fields(request.data,['due_at','status','notes'])
     if 'due_at' in request.data:item.due_at=safe_date(request.data['due_at'])
     if 'status' in request.data:
@@ -318,7 +320,7 @@ def followup_update(request,pk):
         item.status=request.data['status'];item.completed_at=None
     if 'notes' in request.data:item.notes=str(request.data['notes'])
     item.save();refresh_next_action(person)
-    activity(request,person,f'Follow-up updated: {item.subject}');audit(request,'FOLLOWUP_CHANGED',person,new={'followup_id':item.pk,'status':item.status,'due_at':item.due_at.isoformat()})
+    activity(request,person,f'Follow-up updated: {item.subject}',f'Previous schedule: {old["due_at"]} ({old["status"]}). New schedule: {item.due_at.isoformat()} ({item.status}).\nPrevious discussion notes: {old["notes"]}\nNew discussion notes: {item.notes}','FOLLOWUP');audit(request,'FOLLOWUP_CHANGED',person,old=old,new={'followup_id':item.pk,'status':item.status,'due_at':item.due_at.isoformat(),'notes':item.notes})
     return Response({'ok':True})
 
 def materialize_notifications(user):

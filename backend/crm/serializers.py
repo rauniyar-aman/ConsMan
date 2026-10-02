@@ -63,8 +63,8 @@ class FollowUpSerializer(serializers.ModelSerializer):
     person_id = serializers.UUIDField(read_only=True)
     class Meta:
         model = FollowUp
-        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','owner_name','completed_at','outcome']
-        read_only_fields = ['id','completed_at','outcome','status']
+        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','owner_name','created_at','completed_at','outcome']
+        read_only_fields = ['id','created_at','completed_at','outcome','status']
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)

@@ -249,7 +249,11 @@ class PersonViewSet(ViewSet):
 @api_view(['GET'])
 def followup_queue(request):
     people = scoped_people(request.user, Person.objects.filter(archived_at__isnull=True))
-    items = FollowUp.objects.filter(person__in=people, completed_at__isnull=True,status__in=['OPEN','IN_PROGRESS']).select_related('person')
+    items = FollowUp.objects.filter(person__in=people).select_related('person','owner')
+    if request.query_params.get('include_completed')=='1':
+        from django.db.models.functions import Coalesce
+        items=items.annotate(recorded_at=Coalesce('completed_at','due_at')).order_by('-recorded_at','-pk')
+    else:items=items.filter(completed_at__isnull=True,status__in=['OPEN','IN_PROGRESS'])
     return Response(FollowUpSerializer(items, many=True).data)
 
 @extend_schema(request=OutcomeSerializer, responses=FollowUpSerializer)
