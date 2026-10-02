@@ -103,3 +103,5 @@
   .pipeline-label{width:100px}
   .pipeline button{gap:8px}
 }
+
+.saved-qr-preview{display:block;width:min(100%,160px);height:auto;object-fit:contain;margin:16px auto}.saved-qr-preview.expanded{width:min(100%,340px)}
