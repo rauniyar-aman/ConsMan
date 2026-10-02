@@ -13,3 +13,5 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
 REVOKE UPDATE, DELETE, TRUNCATE ON admissions_applicationevent, admissions_documentversion FROM consman_app;
 REVOKE DELETE, TRUNCATE ON admissions_workflowtemplate FROM consman_app;
+
+REVOKE UPDATE, DELETE, TRUNCATE ON progression_visaevent, progression_visaworkflow FROM consman_app;

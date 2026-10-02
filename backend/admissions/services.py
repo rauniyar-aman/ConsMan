@@ -58,8 +58,9 @@ def incomplete_documents(app):
 
 def transition(request,app,state,reason=''):
     milestones=app.workflow_template.milestones
-    if state not in milestones+TERMINAL_STATES:raise ValidationError('This state is not enabled in the application workflow.')
     if state==app.state:return
+    if state not in milestones+TERMINAL_STATES:raise ValidationError('This state is not enabled in the application workflow.')
+    if app.state in ['OFFER_ACCEPTED','ENROLLED'] and state not in TERMINAL_STATES:raise ValidationError('Use the offer, enrollment or reviewed deferral actions for this application.')
     if app.state in TERMINAL_STATES:raise ValidationError('Terminal applications cannot advance; create a new application or use reviewed deferral.')
     if state in ['READY','SUBMITTED'] and (blockers(app) or incomplete_documents(app)):raise ValidationError('Resolve blockers and verify, waive or mark required documents not applicable before proceeding.')
     if state=='OFFER_RECEIVED' and not app.offers.exists():raise ValidationError('Record an offer before moving to offer received.')

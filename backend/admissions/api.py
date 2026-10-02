@@ -51,7 +51,7 @@ def get_app(request,pk,write=False):
 
 def app_data(app):
     offering=app.course_offering
-    return {'id':str(app.pk),'ref':app.ref,'person_id':str(app.person_id),'person_name':app.person.full_name,'person_ref':app.person.ref,'owner_id':app.owner_id,'owner_name':app.owner.get_full_name() or app.owner.username,'branch_id':app.person.branch_id,'state':app.state,'offering_id':offering.pk,'course':offering.course.name,'level':offering.course.level,'university':offering.campus.university.name,'campus':offering.campus.name,'destination':offering.campus.university.country,'intake':offering.intake.name,'start_date':offering.intake.start_date,'fee':str(offering.fee),'currency':offering.currency,'workflow_id':app.workflow_template_id,'workflow_version':app.workflow_template.version,'milestones':app.workflow_template.milestones,'notes':app.notes,'created_at':app.created_at,'updated_at':app.updated_at}
+    return {'id':str(app.pk),'ref':app.ref,'person_id':str(app.person_id),'person_name':app.person.full_name,'person_ref':app.person.ref,'owner_id':app.owner_id,'owner_name':app.owner.get_full_name() or app.owner.username,'branch_id':app.person.branch_id,'state':app.state,'offering_id':offering.pk,'course':offering.course.name,'level':offering.course.level,'university':offering.campus.university.name,'campus':offering.campus.name,'destination':offering.campus.university.country,'intake':offering.intake.name,'start_date':offering.intake.start_date,'fee':str(offering.fee),'currency':offering.currency,'workflow_id':app.workflow_template_id,'workflow_version':app.workflow_template.version,'milestones':app.workflow_template.milestones,'enrollment_requirements':app.workflow_template.enrollment_requirements,'visa_requirements':app.workflow_template.visa_requirements,'notes':app.notes,'created_at':app.created_at,'updated_at':app.updated_at}
 
 
 def doc_data(doc):
@@ -341,6 +341,8 @@ def offers(request,pk,offer_id=None):
         if expires and expires<=timezone.now():raise ValidationError('Offer expiry must be in the future.')
         document=get_object_or_404(app.documents,pk=request.data['document_id']) if request.data.get('document_id') else None
         offer=OfferReceipt.objects.create(application=app,type=kind,conditions=conditions,expires_at=expires,received_at=timezone.now(),reference=serializers.CharField(max_length=120,allow_blank=True).run_validation(request.data.get('reference','')),document=document)
+        from progression.models import OfferCondition
+        OfferCondition.objects.bulk_create([OfferCondition(offer=offer,title=title) for title in conditions])
         if expires:Deadline.objects.create(person=app.person,application=app,type='OFFER_EXPIRY',title='Offer expires',due_at=expires,source='OFFER')
         transition(request,app,'OFFER_RECEIVED',str(request.data.get('reason','Offer received from institution'))[:500])
         event(request,app,'OFFER_RECEIVED',new={'offer_id':offer.pk,'type':kind,'conditions':conditions})

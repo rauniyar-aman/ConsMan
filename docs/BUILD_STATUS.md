@@ -1,8 +1,12 @@
-# ConsMan — Phase 1 status
+# ConsMan — Build status
+
+Current implementation: Phase 1 staff/intake/QR features, [Phase 2 admissions](PHASE_2.md) and [Phase 3 offer, visa and enrollment](PHASE_3.md). Updated 2 October 2026. The frontend and backend have been deployed to Cloudflare and Render with Neon PostgreSQL. New releases still require deployment verification. Staff acceptance, actual institution rules and the concurrent-user performance target remain open.
+
+## Historical Phase 1 baseline
 
 Updated 1 October 2026. Baseline: PRD v1.5 and the supplied brand/design specifications.
 
-**The Phase 1 application is implemented and locally verified. Production acceptance is pending external services, PostgreSQL validation, deployment, and staff UAT.** Later admissions, visa processing, finance and student-portal phases are outside this build.
+**The Phase 1 application is implemented and locally verified. Production acceptance is pending external services, PostgreSQL validation, deployment, and staff UAT.** At this baseline, later phases were outside the build; see the current implementation above.
 
 ## Implemented
 

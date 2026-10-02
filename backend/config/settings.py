@@ -8,7 +8,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'local-development-only-change-befor
 if not DEBUG and SECRET_KEY == 'local-development-only-change-before-deployment':
     raise RuntimeError('DJANGO_SECRET_KEY is required outside development')
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
-INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'rest_framework', 'drf_spectacular', 'crm','qr','intake','data_import','admissions']
+INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'rest_framework', 'drf_spectacular', 'crm','qr','intake','data_import','admissions','progression']
 MIDDLEWARE = ['django.middleware.security.SecurityMiddleware', 'crm.middleware.RequestIdMiddleware', 'django.contrib.sessions.middleware.SessionMiddleware', 'django.middleware.common.CommonMiddleware', 'django.middleware.csrf.CsrfViewMiddleware', 'django.contrib.auth.middleware.AuthenticationMiddleware']
 MIDDLEWARE.append('django.middleware.clickjacking.XFrameOptionsMiddleware')
 ROOT_URLCONF = 'config.urls'

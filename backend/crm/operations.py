@@ -392,6 +392,8 @@ def merge_people(request):
     if StudentPreference.objects.filter(person=merged).exists() and StudentPreference.objects.filter(person=survivor).exists():
         raise ValidationError('Both records have admissions preferences. Reconcile these before merging.')
     models.extend([Application,AdmissionDocument,Deadline,Blocker,StudentPreference])
+    from progression.models import Payment
+    models.append(Payment)
     for model in models:
         ids=list(model.objects.filter(person=merged).values_list('pk',flat=True))
         moved[model._meta.label]=[str(x) for x in ids]
