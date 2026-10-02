@@ -209,6 +209,7 @@ def staff_queue(request,pk=None,operation=None):
         submission.payload=payload;submission.save()
     elif operation=='resolve':
         if not submission.verified_at:raise ValidationError('Unverified submissions cannot create or match Persons.')
+        if submission.outcome not in ['MATCHED','NEEDS_REVIEW'] or submission.status not in ['VERIFIED','PROCESSED'] or not IntakeReview.objects.filter(submission=submission,resolved_at__isnull=True).exclude(candidate_ids=[]).exists():raise ValidationError('Only unresolved duplicate submissions can be matched or created separately.')
         person=None
         if request.data.get('person_id'):person=get_object_or_404(scoped_people(request.user,Person.objects.filter(archived_at__isnull=True),'intake'),pk=request.data['person_id'])
         if not person and request.data.get('create') is not True:raise ValidationError('Choose an existing person or explicitly create a separate one.')

@@ -382,3 +382,22 @@ class PhaseOneTests(TestCase):
             expected='Cambridge English' if preference=='OTHER' else 'without IELTS/PTE' if preference=='WITHOUT_TEST' else 'not taken an English test'
             self.assertTrue(person.activities.filter(notes__contains=expected).exists())
             self.assertFalse(person.followups.exists())
+
+    def test_unique_verified_intake_cannot_create_a_separate_duplicate(self):
+        result=self.submit()
+        verified=self.public.post(f'/api/public/intake/submissions/{result["id"]}/otp/verify/',{'code':self.provider.codes[-1]},format='json',HTTP_X_RESUME_TOKEN=result['resume_token'])
+        self.assertEqual(verified.status_code,200,verified.data)
+        self.client.force_authenticate(self.manager)
+        response=self.client.post(f'/api/v1/intake/submissions/{result["id"]}/resolve/',{'create':True,'reason':'Attempt duplicate'},format='json')
+        self.assertEqual(response.status_code,400,response.data);self.assertEqual(Person.objects.count(),1)
+
+    def test_duplicate_verified_intake_can_be_resolved_once(self):
+        self.create(phone='9801234599',email='')
+        result=self.submit(full_name='Shared phone visitor')
+        verified=self.public.post(f'/api/public/intake/submissions/{result["id"]}/otp/verify/',{'code':self.provider.codes[-1]},format='json',HTTP_X_RESUME_TOKEN=result['resume_token'])
+        self.assertEqual(verified.status_code,200,verified.data)
+        self.client.force_authenticate(self.manager)
+        url=f'/api/v1/intake/submissions/{result["id"]}/resolve/'
+        response=self.client.post(url,{'create':True,'reason':'Different visitor sharing family phone'},format='json')
+        self.assertEqual(response.status_code,200,response.data);self.assertEqual(Person.objects.count(),2)
+        self.assertEqual(self.client.post(url,{'create':True,'reason':'Repeat'},format='json').status_code,400)
