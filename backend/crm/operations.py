@@ -84,7 +84,7 @@ def lifecycle(request,pk):
     old={'stage':person.stage,'status':person.lead_status,'temperature':person.temperature,'student_state':person.student_state}
     reason=str(request.data.get('reason','')).strip()
     if request.data.get('revert_to_lead'):
-        scope(request.user,'reassign');required_reason(request.data)
+        required_reason(request.data)
         if person.stage!='STUDENT':raise ValidationError('Only students can revert to lead.')
         person.stage='LEAD';person.lead_status='CONTACTED';person.student_state='';person.converted_at=None
     elif person.stage=='STUDENT':

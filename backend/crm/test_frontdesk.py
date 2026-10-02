@@ -156,3 +156,14 @@ class FrontdeskWorkflowTests(TestCase):
         self.person.refresh_from_db();self.assertEqual(self.person.owner,self.uk)
         self.assertEqual(self.client.post(path,{'owner_id':self.counselor.pk},format='json').status_code,400)
         self.assertEqual(self.client.post(path,{'owner_id':self.uk.pk},format='json').status_code,200)
+
+    def test_counselor_can_undo_own_conversion_without_reassign_permission(self):
+        self.person.stage='STUDENT';self.person.lead_status='CONVERTED';self.person.student_state='ACTIVE';self.person.converted_at=timezone.now();self.person.save()
+        self.client.force_authenticate(self.counselor)
+        path=f'/api/v1/people/{self.person.pk}/lifecycle/'
+        self.assertEqual(self.client.post(path,{'revert_to_lead':True},format='json').status_code,400)
+        result=self.client.post(path,{'revert_to_lead':True,'reason':'Converted by mistake'},format='json')
+        self.assertEqual(result.status_code,200,result.data)
+        self.person.refresh_from_db();self.assertEqual(self.person.stage,'LEAD');self.assertEqual(self.person.lead_status,'CONTACTED')
+        self.client.force_authenticate(self.desk)
+        self.assertEqual(self.client.post(path,{'revert_to_lead':True,'reason':'Mistake'},format='json').status_code,403)
