@@ -42,7 +42,7 @@ def visa_event(request,case,kind,old=None,new=None,reason=''):
     event(request,case.application,'VISA_'+kind,old=old,new={'case_id':str(case.pk),**(new or {})},reason=reason)
 def value_rows(qs):return list(qs.values())
 def verified_deposit(app,code):
-    return app.payments.filter(status='VERIFIED',currency=code,purpose='DEPOSIT',proof__status='VERIFIED').filter(Q(proof__expires_at__isnull=True)|Q(proof__expires_at__gt=timezone.now())).aggregate(total=Sum('amount'))['total'] or Decimal(0)
+    return app.payments.filter(status='VERIFIED',currency=code,purpose='DEPOSIT').filter(Q(financial_files__isnull=False)|(Q(proof__status='VERIFIED')&(Q(proof__expires_at__isnull=True)|Q(proof__expires_at__gt=timezone.now())))).distinct().aggregate(total=Sum('amount'))['total'] or Decimal(0)
 
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
@@ -74,6 +74,7 @@ def journey(request,pk):
     app=get_app(request,pk,request.method=='POST')
     if request.method=='POST':
         data=request.data;action=data.get('action')
+        if action in ['deposit','payment','payment_status'] and profile(request.user).role not in ['ADMIN','MANAGER','FINANCE']:raise PermissionDenied('Financial changes require authorized finance staff.')
         if action=='condition':
             condition=get_object_or_404(OfferCondition,pk=identifier(data),offer__application=app)
             state=data.get('status')
@@ -112,7 +113,11 @@ def journey(request,pk):
                 if data.get('proof_id'):payment.proof=document(app,data['proof_id'])
                 if not payment.proof or not reviewed_document(payment.proof):raise ValidationError('Attach a verified proof document before verifying payment.')
                 payment.verified_by=request.user
-            payment.status=state;payment.save();event(request,app,'PAYMENT_STATUS',new={'payment_id':str(payment.pk),'status':state},reason=reason)
+            payment.status=state;payment.save()
+            if state=='VERIFIED':
+                from finance.api import issue_receipt
+                issue_receipt(request,payment)
+            event(request,app,'PAYMENT_STATUS',new={'payment_id':str(payment.pk),'status':state},reason=reason)
         elif action=='enrollment_document':
             doc=document(app,data.get('document_id'))
             kind=serializers.ChoiceField(choices=['CAS','COE','I20','LOA','OTHER']).run_validation(data.get('kind'));number=string(data,'number',120)
@@ -212,4 +217,8 @@ def journey(request,pk):
     cases=[]
     for case in app.visa_cases.order_by('-attempt_no'):
         cases.append({'id':str(case.pk),'ref':case.ref,'attempt_no':case.attempt_no,'previous_case_id':case.previous_case_id,'state':case.state,'workflow':case.workflow_snapshot,'appointment_at':case.appointment_at,'submitted_at':case.submitted_at,'decided_at':case.decided_at,'decision_reason':case.decision_reason,'documents':[doc_data(link.document) for link in case.checklist_documents.select_related('document').prefetch_related('document__versions')],'events':value_rows(case.events.order_by('-created_at')),'financial_evidence':value_rows(case.financial_evidence.all()),'blockers':value_rows(Blocker.objects.filter(visablocker__case=case))})
-    return Response({'application_id':str(app.pk),'state':app.state,'can_edit':profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR'],'can_verify_payment':profile(request.user).role in ['ADMIN','MANAGER'],'conditions':value_rows(OfferCondition.objects.filter(offer__application=app)),'offers':value_rows(app.offers.all()),'deposit':value_rows(DepositRequirement.objects.filter(application=app))[0] if deposit else None,'verified_deposit_total':str(paid),'payments':value_rows(app.payments.all()),'enrollment_documents':value_rows(app.enrollment_documents.all()),'visa_cases':cases,'predeparture':value_rows(PreDeparture.objects.filter(application=app)),'enrollment':value_rows(Enrollment.objects.filter(application=app))})
+    result={'application_id':str(app.pk),'state':app.state,'can_edit':profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR'],'can_verify_payment':profile(request.user).role in ['ADMIN','MANAGER'],'conditions':value_rows(OfferCondition.objects.filter(offer__application=app)),'offers':value_rows(app.offers.all()),'deposit':value_rows(DepositRequirement.objects.filter(application=app))[0] if deposit else None,'verified_deposit_total':str(paid),'payments':value_rows(app.payments.all()),'enrollment_documents':value_rows(app.enrollment_documents.all()),'visa_cases':cases,'predeparture':value_rows(PreDeparture.objects.filter(application=app)),'enrollment':value_rows(Enrollment.objects.filter(application=app))}
+    result['can_view_finance']=profile(request.user).role in ['ADMIN','MANAGER','FINANCE','MANAGEMENT']
+    if not result['can_view_finance']:
+        for key in ['deposit','verified_deposit_total','payments']:result.pop(key,None)
+    return Response(result)

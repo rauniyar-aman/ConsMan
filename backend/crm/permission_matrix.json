@@ -1,8 +1,69 @@
 {
-  "ADMIN": {"view":"full","create":"full","edit":"full","work":"full","convert":"full","request_access":"full","reassign":"full","bulk":"full","intake":"full","qr":"full","review":"full","merge":"full","import":"full","export":"full","audit":"full","settings":"full","archive":"full"},
-  "MANAGER": {"view":"branch","create":"branch","edit":"branch","work":"branch","convert":"branch","reassign":"branch","bulk":"branch","intake":"branch","qr":"branch","review":"branch","merge":"branch","import":"branch","export":"branch","audit":"branch","archive":"branch"},
-  "COUNSELOR": {"view":"own","create":"own","edit":"own","work":"own","convert":"own","request_access":"own","export":"own","discovery":"masked"},
-  "DOCS": {"view":"assigned","edit":"documents","work":"assigned","discovery":"masked"},
-  "FINANCE": {},
-  "MANAGEMENT": {"view":"full","export":"reports","audit":"full"}
+  "ADMIN": {
+    "view": "full",
+    "create": "full",
+    "edit": "full",
+    "work": "full",
+    "convert": "full",
+    "request_access": "full",
+    "reassign": "full",
+    "bulk": "full",
+    "intake": "full",
+    "qr": "full",
+    "review": "full",
+    "merge": "full",
+    "import": "full",
+    "export": "full",
+    "audit": "full",
+    "settings": "full",
+    "archive": "full",
+    "finance_view": "full",
+    "finance_edit": "full",
+    "finance_rules": "full"
+  },
+  "MANAGER": {
+    "view": "branch",
+    "create": "branch",
+    "edit": "branch",
+    "work": "branch",
+    "convert": "branch",
+    "reassign": "branch",
+    "bulk": "branch",
+    "intake": "branch",
+    "qr": "branch",
+    "review": "branch",
+    "merge": "branch",
+    "import": "branch",
+    "export": "branch",
+    "audit": "branch",
+    "archive": "branch",
+    "finance_view": "branch",
+    "finance_edit": "branch"
+  },
+  "COUNSELOR": {
+    "view": "own",
+    "create": "own",
+    "edit": "own",
+    "work": "own",
+    "convert": "own",
+    "request_access": "own",
+    "export": "own",
+    "discovery": "masked"
+  },
+  "DOCS": {
+    "view": "assigned",
+    "edit": "documents",
+    "work": "assigned",
+    "discovery": "masked"
+  },
+  "FINANCE": {
+    "finance_view": "branch",
+    "finance_edit": "branch"
+  },
+  "MANAGEMENT": {
+    "view": "full",
+    "export": "reports",
+    "audit": "full",
+    "finance_view": "full"
+  }
 }

@@ -1,6 +1,6 @@
 # ConsMan — Build status
 
-Current implementation: Phase 1 staff/intake/QR features, [Phase 2 admissions](PHASE_2.md) and [Phase 3 offer, visa and enrollment](PHASE_3.md). Updated 2 October 2026. The frontend and backend have been deployed to Cloudflare and Render with Neon PostgreSQL. New releases still require deployment verification. Staff acceptance, actual institution rules and the concurrent-user performance target remain open.
+Current implementation: Phase 1 staff/intake/QR features, [Phase 2 admissions](PHASE_2.md) and [Phase 3 offer, visa and enrollment](PHASE_3.md) and [Phase 4 finance and institution commissions](PHASE_4.md). Updated 2 October 2026. The frontend and backend have been deployed to Cloudflare and Render with Neon PostgreSQL. New releases still require deployment verification. Staff acceptance, actual institution rules and the concurrent-user performance target remain open.
 
 ## Historical Phase 1 baseline
 

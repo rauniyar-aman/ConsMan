@@ -442,6 +442,11 @@ def reverse_merge(request,pk):
     from admissions.models import ApplicationEvent
     moved_apps=record.moved_objects.get('admissions.Application',[])
     if ApplicationEvent.objects.filter(application_id__in=moved_apps,created_at__gt=record.performed_at).exists():raise ValidationError('Moved applications changed after merge; manual reconciliation is required.')
+    from finance.models import FinanceEvent,PaymentAllocation,InstitutionCommission
+    moved_payments=record.moved_objects.get('progression.Payment',[]);moved_invoices=record.moved_objects.get('finance.Invoice',[])
+    moved_commissions=InstitutionCommission.objects.filter(application_id__in=moved_apps).values_list('pk',flat=True)
+    changed_finance=Q(object_kind='payments',object_id__in=moved_payments)|Q(object_kind='invoices',object_id__in=moved_invoices)|Q(object_kind='commissions',object_id__in=[str(pk) for pk in moved_commissions])
+    if FinanceEvent.objects.filter(changed_finance,created_at__gt=record.performed_at).exists() or PaymentAllocation.objects.filter(Q(payment_id__in=moved_payments)|Q(invoice_id__in=moved_invoices),created_at__gt=record.performed_at).exists():raise ValidationError('Moved financial records changed after merge; manual reconciliation is required.')
     for model_name,ids in record.moved_objects.items():
         if model_name in ['tags_before','tags_after','relationship_changes']:continue
         model=apps.get_model(model_name)

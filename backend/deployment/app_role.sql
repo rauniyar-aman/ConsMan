@@ -15,3 +15,5 @@ REVOKE UPDATE, DELETE, TRUNCATE ON admissions_applicationevent, admissions_docum
 REVOKE DELETE, TRUNCATE ON admissions_workflowtemplate FROM consman_app;
 
 REVOKE UPDATE, DELETE, TRUNCATE ON progression_visaevent, progression_visaworkflow FROM consman_app;
+
+REVOKE UPDATE,DELETE,TRUNCATE ON finance_financeevent,finance_financefile,finance_receipt,finance_commissionreceipt,finance_commissionrule,finance_paymentallocation FROM consman_app;

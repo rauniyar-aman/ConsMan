@@ -52,7 +52,7 @@ class ProgressionTests(TestCase):
         self.assertEqual(self.patch(app,state='ENROLLED',reason='Skip controls').status_code,400)
 
     def test_deposit_payment_verification_and_final_enrollment(self):
-        app=self.accepted();proof=self.evidence(app)
+        app=self.accepted();proof=self.evidence(app);self.client.force_authenticate(self.admin)
         self.assertEqual(self.act(app,'deposit',amount='100',currency='usd',reason='Institution requires deposit').status_code,200)
         payload={'enrolled_on':str(timezone.localdate()),'institution_reference':'ENR-01','reason':'Institution confirmed'}
         self.assertEqual(self.act(app,'enroll',**payload).status_code,400)
@@ -61,6 +61,7 @@ class ProgressionTests(TestCase):
         r=self.act(app,'payment',amount='100',currency='USD',paid_on=str(timezone.localdate()),method='BANK_TRANSFER',reference='TX-1')
         self.assertEqual(r.status_code,200,r.data);payment=Payment.objects.get(application=app)
         self.assertEqual(self.act(app,'payment_status',id=str(payment.pk),status='RECEIVED',reason='Bank receipt').status_code,200)
+        self.client.force_authenticate(self.owner)
         self.assertEqual(self.act(app,'payment_status',id=str(payment.pk),status='VERIFIED',reason='Reviewed',proof_id=str(proof.pk)).status_code,403)
         self.client.force_authenticate(self.admin)
         self.assertEqual(self.act(app,'payment_status',id=str(payment.pk),status='VERIFIED',reason='Reviewed').status_code,400)
@@ -130,7 +131,7 @@ class ProgressionTests(TestCase):
 
     def test_scope_and_document_staff_cannot_mutate_journey(self):
         app=self.accepted()
-        self.assertEqual(self.act(app,'payment_status',id='invalid',status='VERIFIED',reason='Invalid identifier').status_code,400)
+        self.assertEqual(self.act(app,'payment_status',id='invalid',status='VERIFIED',reason='Invalid identifier').status_code,403)
         self.assertEqual(self.act(app,'visa_state',case_id='invalid',state='READY',reason='Invalid identifier').status_code,400)
         self.client.force_authenticate(self.other)
         self.assertEqual(self.act(app,'predeparture',reason='Unauthorized').status_code,404)
@@ -149,7 +150,7 @@ class ProgressionTests(TestCase):
         with self.assertRaises(DatabaseError),transaction.atomic():VisaWorkflow.objects.update(required_documents=['Changed'])
 
     def test_payment_retry_is_idempotent(self):
-        app=self.accepted();path=f'/api/v1/progression/applications/{app.pk}/'
+        app=self.accepted();self.client.force_authenticate(self.admin);path=f'/api/v1/progression/applications/{app.pk}/'
         data={'action':'payment','amount':'10','currency':'USD','paid_on':str(timezone.localdate()),'method':'CASH'}
         for attempt in range(2):
             r=self.client.post(path,data,format='json',HTTP_IDEMPOTENCY_KEY='phase-three-payment-retry');self.assertEqual(r.status_code,200,r.data)
