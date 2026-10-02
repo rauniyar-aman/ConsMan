@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: consman-whatsapp-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerCommand: node scripts/start-render.cjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: TZ
+        value: Asia/Kathmandu
+      - key: AUTH_TRUST_HOST
+        value: "true"
+      - key: DISABLE_KEEPALIVE
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: BASE_URL
+        sync: false
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: GATEWAY_ADMIN_EMAIL
+        sync: false
+      - key: GATEWAY_ADMIN_PASSWORD
+        sync: false

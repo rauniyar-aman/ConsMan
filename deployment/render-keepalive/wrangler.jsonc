@@ -1,0 +1,13 @@
+{
+  "name": "consman-render-keepalive",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-02",
+  "workers_dev": false,
+  "triggers": {"crons": ["*/10 * * * *"]},
+  "observability": {"enabled": true},
+  "vars": {
+    "ENABLED": "false",
+    "CONSMAN_HEALTH_URL": "https://consman-rauniyaraman-api.onrender.com/api/v1/health/",
+    "GATEWAY_HEALTH_URL": ""
+  }
+}
