@@ -136,98 +136,42 @@
     "limit": 3000
   },
   {
-    "name": "test_IELTS",
-    "label": "Ielts score",
     "section": "Test scores",
-    "kind": "text",
-    "options": [],
     "required": false,
     "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_PTE",
-    "label": "Pte score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_TOEFL",
-    "label": "Toefl score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_DUOLINGO",
-    "label": "Duolingo score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_SAT",
-    "label": "Sat score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_GRE",
-    "label": "Gre score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_GMAT",
-    "label": "Gmat score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_OTHER",
-    "label": "Other score",
-    "section": "Test scores",
-    "kind": "text",
-    "options": [],
-    "required": false,
-    "locked": false,
-    "limit": 40
-  },
-  {
-    "name": "test_status",
-    "label": "Test status",
-    "section": "Test scores",
-    "kind": "select",
+    "limit": 40,
     "options": [
-      "TAKEN",
-      "PLANNED",
-      "NOT_TAKEN"
+      "IELTS",
+      "PTE",
+      "DUOLINGO",
+      "TOEFL",
+      "OTHER",
+      "NOT_TAKEN",
+      "WITHOUT_TEST"
     ],
+    "name": "english_test",
+    "label": "English test / application preference",
+    "kind": "select"
+  },
+  {
+    "section": "Test scores",
     "required": false,
     "locked": false,
-    "limit": 160
+    "limit": 40,
+    "options": [],
+    "name": "english_score",
+    "label": "Test score",
+    "kind": "text"
+  },
+  {
+    "section": "Test scores",
+    "required": false,
+    "locked": false,
+    "limit": 100,
+    "options": [],
+    "name": "english_other",
+    "label": "Other test name",
+    "kind": "text"
   },
   {
     "name": "preferred_country",

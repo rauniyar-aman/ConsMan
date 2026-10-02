@@ -105,6 +105,9 @@ def process_verified(request,submission,chosen_person=None,allow_create=False):
         from crm.models import EducationRecord,TestScore
         for education in payload.get('education',[]):EducationRecord.objects.create(person=person,**education)
         for score in payload.get('test_scores',[]):TestScore.objects.create(person=person,**score)
+        if payload.get('english_test')=='WITHOUT_TEST':activity(request,person,'English test preference','Visitor wants to apply without IELTS/PTE.','NOTE')
+        elif payload.get('english_test')=='NOT_TAKEN':activity(request,person,'English test preference','Visitor has not taken an English test yet.','NOTE')
+        elif payload.get('english_test')=='OTHER' and payload.get('english_other'):activity(request,person,'Other English test',payload['english_other'],'NOTE')
         submission.outcome='CREATED'
         owner=None if payload.get('_paper_entry') else automatic_owner(qr.branch)
         start_sla(person,'ASSIGNMENT');start_sla(person,'FIRST_CONTACT')

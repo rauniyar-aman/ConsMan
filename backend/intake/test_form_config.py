@@ -22,7 +22,7 @@ class VisitorFormTests(SimpleTestCase):
         self.assertIn('address',error.exception.detail)
         validate_answers(qr,{'full_name':'Visitor','phone':'+9779801234599','address':'Kathmandu','highest_education':'Bachelor'})
     def test_reference_answers_validate(self):
-        data={'code':'abc','full_name':'Visitor','phone':'+9779801234599','address':'Kathmandu','highest_education':'Bachelor','consent':True,'turnstile_token':'development','alternate_phone':'+9779801234598','preferred_university':'College','heard_about_us':'Walk-in','best_contact_method':'WHATSAPP','education':[{'level':'Bachelor','institute':'College','degree_stream':'Science','grade_or_percent':'3.5','passed_year':2025}],'test_scores':[{'test':'IELTS','score':'7','status':'TAKEN'}]}
+        data={'code':'abc','full_name':'Visitor','phone':'+9779801234599','address':'Kathmandu','highest_education':'Bachelor','consent':True,'turnstile_token':'development','alternate_phone':'+9779801234598','preferred_university':'College','heard_about_us':'Walk-in','best_contact_method':'WHATSAPP','english_test':'IELTS','education':[{'level':'Bachelor','institute':'College','degree_stream':'Science','grade_or_percent':'3.5','passed_year':2025}],'test_scores':[{'test':'IELTS','score':'7','status':'TAKEN'}]}
         serializer=VisitorSerializer(data=data,context={'staff':True});self.assertTrue(serializer.is_valid(),serializer.errors)
         validate_answers(SimpleNamespace(content={'form':{'fields':{'institute':{'required':True},'test_IELTS':{'required':True}}}}),serializer.validated_data)
 

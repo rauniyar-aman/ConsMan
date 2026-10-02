@@ -54,6 +54,8 @@ class VisitorSerializer(serializers.Serializer):
     work_experience=serializers.CharField(max_length=3000,required=False,allow_blank=True)
     previous_visa_refusal=serializers.ChoiceField(choices=[('YES','Yes'),('NO','No'),('UNKNOWN','Unknown')],required=False)
     education=serializers.ListField(child=serializers.DictField(),required=False,max_length=20)
+    english_test=serializers.ChoiceField(choices=['IELTS','PTE','DUOLINGO','TOEFL','OTHER','NOT_TAKEN','WITHOUT_TEST'],required=False)
+    english_other=serializers.CharField(max_length=100,required=False,allow_blank=True)
     test_scores=serializers.ListField(child=serializers.DictField(),required=False,max_length=20)
     def validate(self,data):
         if not data['consent'] or data.get('website'):raise ValidationError('Consent is required and the request must be valid.')

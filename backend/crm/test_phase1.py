@@ -377,3 +377,14 @@ class PhaseOneTests(TestCase):
         call_command('run_housekeeping',stdout=io.StringIO())
         submission.refresh_from_db();self.assertEqual(submission.status,'PURGED');self.assertEqual(submission.payload,{});self.assertFalse(submission.resume_token_hash)
         challenge=submission.challenges.get();self.assertFalse(challenge.code_hash);self.assertFalse(challenge.phone_e164);self.assertEqual(Person.objects.count(),0)
+
+    def test_visitor_english_test_preferences_are_saved_after_verification(self):
+        for index,preference in enumerate(['NOT_TAKEN','WITHOUT_TEST','OTHER']):
+            result=self.submit(phone=f'980123458{index}',english_test=preference,english_other='Cambridge English' if preference=='OTHER' else '',test_scores=[{'test':'OTHER','score':'','status':'TAKEN' if preference=='OTHER' else 'NOT_TAKEN'}])
+            response=self.public.post(f'/api/public/intake/submissions/{result["id"]}/otp/verify/',{'code':self.provider.codes[-1]},format='json',HTTP_X_RESUME_TOKEN=result['resume_token'])
+            self.assertEqual(response.status_code,200,response.data)
+            person=IntakeSubmission.objects.get(pk=result['id']).person
+            self.assertEqual(person.test_scores.count(),1)
+            expected='Cambridge English' if preference=='OTHER' else 'without IELTS/PTE' if preference=='WITHOUT_TEST' else 'not taken an English test'
+            self.assertTrue(person.activities.filter(notes__contains=expected).exists())
+            self.assertFalse(person.followups.exists())

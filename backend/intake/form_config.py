@@ -6,7 +6,9 @@ def form_config(content):
     custom=content.get('form',{})
     if not isinstance(custom,dict) or set(custom)-{'title','description','fields'}:raise ValidationError('Invalid form configuration.')
     overrides=custom.get('fields',{})
-    if not isinstance(overrides,dict) or set(overrides)-{f['name'] for f in FIELDS}:raise ValidationError('Unknown form fields.')
+    legacy={'test_'+t for t in ['IELTS','PTE','TOEFL','DUOLINGO','SAT','GRE','GMAT','OTHER']}|{'test_status'}
+    if not isinstance(overrides,dict) or set(overrides)-{f['name'] for f in FIELDS}-legacy:raise ValidationError('Unknown form fields.')
+    if any(isinstance(overrides.get(n),dict) and overrides[n].get('required') is True for n in legacy) and 'english_test' not in overrides:overrides={**overrides,'english_test':{'required':True}}
     result=[]
     for field in FIELDS:
         setting=overrides.get(field['name'],{})
@@ -25,5 +27,9 @@ def validate_answers(qr,data):
         if name in ['institute','degree_stream','grade_or_percent','passed_year']:value=next(iter(data.get('education',[])),{}).get(name)
         if name.startswith('test_') and name!='test_status':value=next((x.get('score') for x in data.get('test_scores',[]) if x['test']==name[5:]),None)
         if name=='test_status':value=next((x.get('status') for x in data.get('test_scores',[])),None)
+        if name=='english_score':
+            if data.get('english_test') in ['NOT_TAKEN','WITHOUT_TEST']:continue
+            value=next((x.get('score') for x in data.get('test_scores',[])),None)
+        if name=='english_other' and data.get('english_test')!='OTHER':continue
         if f['required'] and not value:errors[name]='This field is required.'
     if errors:raise ValidationError(errors)
