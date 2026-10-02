@@ -19,7 +19,10 @@
     "archive": "full",
     "finance_view": "full",
     "finance_edit": "full",
-    "finance_rules": "full"
+    "finance_rules": "full",
+    "communication_view": "full",
+    "communication_send": "full",
+    "communication_templates": "full"
   },
   "MANAGER": {
     "view": "branch",
@@ -38,7 +41,9 @@
     "audit": "branch",
     "archive": "branch",
     "finance_view": "branch",
-    "finance_edit": "branch"
+    "finance_edit": "branch",
+    "communication_view": "branch",
+    "communication_send": "branch"
   },
   "COUNSELOR": {
     "view": "own",
@@ -48,7 +53,9 @@
     "convert": "own",
     "request_access": "own",
     "export": "own",
-    "discovery": "masked"
+    "discovery": "masked",
+    "communication_view": "own",
+    "communication_send": "own"
   },
   "DOCS": {
     "view": "assigned",
@@ -64,6 +71,7 @@
     "view": "full",
     "export": "reports",
     "audit": "full",
-    "finance_view": "full"
+    "finance_view": "full",
+    "communication_view": "full"
   }
 }
