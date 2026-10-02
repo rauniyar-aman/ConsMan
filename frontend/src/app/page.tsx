@@ -5,6 +5,7 @@ import {PasswordInput} from '@/components/password-input';
 import {AuthenticatorSetup} from '@/components/authenticator-setup';
 import {Workspace,type ExtraView} from '@/components/workspace';
 import {ActionForm,choices,reason} from '@/components/action-form';
+import {CommunicationSettings} from '@/components/communication-settings';
 import {Communications} from '@/components/communications';
 import {Finance} from '@/components/finance';
 import {Admissions} from '@/components/admissions';
@@ -12,7 +13,7 @@ import {PersonTools} from '@/components/person-tools';
 import { ArrowDownLeft, ArrowRight, Bell, CalendarDays, Check, ChevronRight, CircleHelp, Clock3, GraduationCap, LayoutDashboard, LogOut, Menu, Plus, Search, Users, X, Flame, ListTodo, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { api, ApiError, date, label, type User, type Person, type Dashboard, type Masters, type Detail, type FollowUp } from '@/lib/api';
 
-type View = 'finance' | 'admissions' | 'dashboard' | 'people' | 'followups' | ExtraView;
+type View = 'communications' | 'finance' | 'admissions' | 'dashboard' | 'people' | 'followups' | ExtraView;
 function Badge({value}:{value:string}) { return <span className={`badge ${value.toLowerCase()}`}>{value === 'HOT' && <Flame size={11}/>} {label(value)}</span>; }
 function ErrorText({error}:{error:string}) { return error ? <p role="alert" className="error">{error}</p> : null; }
 function errorMessage(error:unknown) {
@@ -44,7 +45,7 @@ export default function Home() {
   },[navOpen]);
   const dialogOpen = create || !!detail || !!masked;
   useEffect(()=>{
-    const titles:Record<View,string>={dashboard:'Overview',people:'All people',followups:'Follow-ups',admissions:'Admissions',finance:'Finance',tasks:'Tasks',notifications:'Notifications',assisted:'Staff-assisted intake',intake:'Intake review',qr:'QR Studio',duplicates:'Duplicate review',access:'Access requests',imports:'Excel imports',reports:'Reports & export',audit:'Audit history',settings:'Settings'};
+    const titles:Record<View,string>={communications:'Communications',dashboard:'Overview',people:'All people',followups:'Follow-ups',admissions:'Admissions',finance:'Finance',tasks:'Tasks',notifications:'Notifications',assisted:'Staff-assisted intake',intake:'Intake review',qr:'QR Studio',duplicates:'Duplicate review',access:'Access requests',imports:'Excel imports',reports:'Reports & export',audit:'Audit history',settings:'Settings'};
     document.title=`${loading?'Loading':!user?'Sign in':create?'Add person':detail?'Person 360':titles[view]} | ConsMan`;
   },[view,user,loading,create,detail]);
   useEffect(()=>{
@@ -108,7 +109,7 @@ export default function Home() {
         <button className={view==='followups'?'active':''} onClick={()=>navigate('followups')}><CalendarDays size={18}/>Follow-ups{dashboard?.overdue ? <span className="nav-count urgent">{dashboard.overdue}</span>:null}</button>
       </nav>}
       {user.permissions?.finance_view&&<nav><button className={view==='finance'?'active':''} onClick={()=>navigate('finance')}><ListTodo size={18}/>Finance</button></nav>}
-      {user.permissions?.view&&<nav><button className={view==='admissions'?'active':''} onClick={()=>navigate('admissions')}><GraduationCap size={18}/>Admissions</button></nav>}<div className="nav-label">PLATFORM</div>
+      {user.permissions?.view&&<nav><button className={view==='admissions'?'active':''} onClick={()=>navigate('admissions')}><GraduationCap size={18}/>Admissions</button></nav>}{user.permissions?.communication_templates&&<nav><button className={view==='communications'?'active':''} onClick={()=>navigate('communications')}><Bell size={18}/>Communications</button></nav>}<div className="nav-label">PLATFORM</div>
       <nav>{([{id:'tasks',title:'Tasks',permission:'work'},{id:'notifications',title:'Notifications'},{id:'assisted',title:'Staff-assisted intake',permission:'create'},{id:'intake',title:'Intake review',permission:'intake'},{id:'qr',title:'QR Studio',permission:'qr'},{id:'duplicates',title:'Duplicate review',permission:'review'},{id:'access',title:'Access requests',permission:'request_access',manager:true},{id:'imports',title:'Excel imports',permission:'import'},{id:'reports',title:'Reports & export',permission:'export'},{id:'audit',title:'Audit history',permission:'audit'},{id:'settings',title:'Settings',manager:true}].filter(n=>!n.permission&&!n.manager||!!user.permissions?.[n.permission||'']||n.manager&&['ADMIN','MANAGER'].includes(user.role))).map(n=><button key={n.id} className={view===n.id?'active':''} onClick={()=>navigate(n.id as View)}><ListTodo size={17}/>{n.title}</button>)}</nav>
       <div className="sidebar-bottom"><div className="help-card"><ShieldCheck size={19}/><strong>One person. One journey.</strong><p>Every interaction, in one place.</p></div><div className="profile"><div className="avatar">{user.name.split(' ').map(n=>n[0]).slice(0,2).join('')}</div><div><strong>{user.name}</strong><small>{label(user.role)}</small></div><button aria-label="Sign out" title="Sign out" onClick={async()=>{try{await api('auth/logout/','POST');setNavOpen(false);setUser(null);setDetail(null);}catch(e){setError(errorMessage(e));}}}><LogOut size={16}/></button></div></div>
     </aside>
@@ -119,7 +120,7 @@ export default function Home() {
 
         <div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE, AT A GLANCE</div><h1>{view==='dashboard'?`Good to see you, ${greeting}`:view==='people'?'All people':view==='followups'?'Follow-ups':({qr:'QR Studio',intake:'Intake review',assisted:'Staff-assisted intake',duplicates:'Duplicate review',imports:'Excel imports',access:'Access requests',reports:'Reports & export'} as Record<string,string>)[view]||label(view)}</h1><p>{view==='dashboard'?'A clear view of your leads, next steps, and the people behind them.':view==='people'?'One continuous record, from first conversation to enrollment.':view==='followups'?'Keep the next conversation moving. All times are shown in NPT.':'Manage your workspace and keep every next step clear.'}</p></div>{canCreate&&['dashboard','people','followups'].includes(view)&&<button className="primary" onClick={()=>setCreate(true)}><Plus size={16}/>Add person</button>}</div>
         {view==='finance'&&<Finance/>}
-        {view==='admissions'&&masters&&<Admissions user={user} masters={masters} openPerson={openPerson}/>}
+        {view==='communications'&&<CommunicationSettings/>}{view==='admissions'&&masters&&<Admissions user={user} masters={masters} openPerson={openPerson}/>}
         {view==='dashboard'&&dashboard&&<>
           <div className="metrics">
             {[{title:'Active leads',value:dashboard.active_leads,icon:Users,note:'Across your record scope',filter:''},{title:'Hot leads',value:dashboard.hot_leads,icon:Flame,note:'Ready for your attention',filter:'hot'},{title:'Due today',value:dashboard.due_today,icon:CalendarDays,note:'Conversations to follow up',filter:'today'},{title:'Overdue follow-ups',value:dashboard.overdue,icon:Clock3,note:dashboard.overdue?'Let’s get these back on track':'You’re all caught up',filter:'overdue'}].map((m,i)=><button key={m.title} className={`metric ${i===3?'attention':''}`} onClick={()=>{if(m.filter==='today')navigate('followups');else {navigate('people',m.filter==='overdue'?'overdue':'');setTemperature(m.filter==='hot'?'HOT':'');}}}><div className="metric-top"><span>{m.title}</span><m.icon size={17}/></div><strong>{m.value.toLocaleString()}</strong><small><span className={i===3?'warning-dot':'tiny-dot'}/>{m.note}</small></button>)}

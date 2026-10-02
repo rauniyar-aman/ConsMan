@@ -1,0 +1,34 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - communication_redis:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+  worker:
+    build: ./backend
+    command: [python, deployment/start_communications.py, worker]
+    env_file: ./backend/private_config/communications.env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+  beat:
+    build: ./backend
+    command: [python, deployment/start_communications.py, beat]
+    env_file: ./backend/private_config/communications.env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  communication_redis:
