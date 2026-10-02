@@ -20,3 +20,5 @@ REVOKE UPDATE,DELETE,TRUNCATE ON finance_financeevent,finance_financefile,financ
 
 REVOKE UPDATE,DELETE,TRUNCATE ON communications_messagetemplate,communications_channelconsent,communications_messageevent FROM consman_app;
 REVOKE DELETE,TRUNCATE ON communications_outboundmessage,communications_inboundmessage FROM consman_app;
+
+REVOKE UPDATE,DELETE,TRUNCATE ON student_experience_studentmessage,insights_assistancereview,insights_assistancegeneration FROM consman_app;

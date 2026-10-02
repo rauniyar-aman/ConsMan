@@ -394,7 +394,9 @@ def merge_people(request):
     models.extend([Application,AdmissionDocument,Deadline,Blocker,StudentPreference])
     from progression.models import Payment
     from finance.models import Invoice
-    models.extend([Payment,Invoice])
+    from student_experience.models import StudentRequest,PrivateLink
+    PrivateLink.objects.filter(person__in=[merged,survivor],active=True).update(active=False)
+    models.extend([Payment,Invoice,StudentRequest])
     for model in models:
         ids=list(model.objects.filter(person=merged).values_list('pk',flat=True))
         moved[model._meta.label]=[str(x) for x in ids]

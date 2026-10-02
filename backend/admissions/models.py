@@ -121,6 +121,7 @@ class ApplicationEvent(models.Model):
 
 
 class Document(models.Model):
+    student_visible=models.BooleanField(default=False)
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     person=models.ForeignKey('crm.Person',on_delete=models.PROTECT,related_name='admission_documents')
     application=models.ForeignKey(Application,on_delete=models.PROTECT,related_name='documents',null=True,blank=True)
@@ -143,7 +144,7 @@ class DocumentVersion(models.Model):
     mime=models.CharField(max_length=80)
     checksum=models.CharField(max_length=64)
     data=models.BinaryField()
-    uploaded_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
+    uploaded_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta:
         constraints=[models.UniqueConstraint(fields=['document','version'],name='unique_document_version')]

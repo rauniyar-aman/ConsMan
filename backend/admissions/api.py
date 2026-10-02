@@ -203,29 +203,34 @@ def get_document(request,pk,write=False):
     return get_object_or_404(qs,pk=pk)
 
 
+
+
+def validate_upload(upload):
+    if not upload or upload.size>5*1024*1024:raise ValidationError('Upload a PDF, PNG or JPEG under 5 MB.')
+    raw=upload.read();mime=''
+    if raw.startswith(b'%PDF-'):
+        try:
+            with pymupdf.open(stream=raw,filetype='pdf') as pdf:
+                if pdf.is_encrypted or not len(pdf) or pdf.embfile_count():raise ValueError()
+            if b'/JavaScript' in raw or b'/JS' in raw or b'/Launch' in raw:raise ValueError()
+            mime='application/pdf'
+        except Exception:raise ValidationError('Upload a readable PDF without scripts, attachments or encryption.')
+    else:
+        try:
+            image=Image.open(io.BytesIO(raw))
+            if image.format not in ['PNG','JPEG'] or image.width*image.height>20000000:raise ValueError()
+            mime='image/png' if image.format=='PNG' else 'image/jpeg';image.verify()
+        except Exception:raise ValidationError('Upload a valid PNG, JPEG or PDF.')
+    filename=Path(upload.name.replace('\\','/')).name[:160]
+    return raw,mime,filename
+
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
 @api_view(['GET','PATCH','POST'])
 @transaction.atomic
 def document_detail(request,pk):
     doc=get_document(request,pk,request.method!='GET')
     if request.method=='POST':
-        upload=request.FILES.get('file')
-        if not upload or upload.size>5*1024*1024:raise ValidationError('Upload a PDF, PNG or JPEG under 5 MB.')
-        raw=upload.read();mime=''
-        if raw.startswith(b'%PDF-'):
-            try:
-                with pymupdf.open(stream=raw,filetype='pdf') as pdf:
-                    if pdf.is_encrypted or not len(pdf) or pdf.embfile_count():raise ValueError()
-                if b'/JavaScript' in raw or b'/JS' in raw or b'/Launch' in raw:raise ValueError()
-                mime='application/pdf'
-            except Exception:raise ValidationError('Upload a readable PDF without scripts, attachments or encryption.')
-        else:
-            try:
-                image=Image.open(io.BytesIO(raw))
-                if image.format not in ['PNG','JPEG'] or image.width*image.height>20000000:raise ValueError()
-                mime='image/png' if image.format=='PNG' else 'image/jpeg';image.verify()
-            except Exception:raise ValidationError('Upload a valid PNG, JPEG or PDF.')
-        filename=Path(upload.name.replace('\\','/')).name[:160]
+        raw,mime,filename=validate_upload(request.FILES.get('file'))
         doc.version+=1;doc.status='UPLOADED';doc.verified_by=None;doc.verified_at=None;doc.save()
         DocumentVersion.objects.create(document=doc,version=doc.version,filename=filename,mime=mime,data=raw,checksum=hashlib.sha256(raw).hexdigest(),uploaded_by=request.user)
         audit(request,'ADMISSION_DOCUMENT_UPLOADED',doc.person,new={'document_id':str(doc.pk),'version':doc.version,'checksum':hashlib.sha256(raw).hexdigest()})

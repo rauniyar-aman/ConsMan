@@ -105,3 +105,9 @@
 }
 
 .saved-qr-preview{display:block;width:min(100%,160px);height:auto;object-fit:contain;margin:16px auto}.saved-qr-preview.expanded{width:min(100%,340px)}
+
+.portal-item{border-top:1px solid #dce5ef;padding:16px 0;overflow-wrap:anywhere}.portal-body{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.student-shell{max-width:1180px;margin:auto;padding:24px;display:grid;gap:20px}.student-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.student-header button{margin-left:auto}.student-shell .card{padding:24px;min-width:0}.student-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.student-shell label{display:grid;gap:8px}.student-shell .inline-form{display:grid;gap:16px}.student-shell h2{margin-bottom:16px}.student-shell ul{padding-left:22px}.student-shell input,.student-shell textarea{max-width:100%;min-width:0}.student-shell .primary,.student-shell .secondary{min-height:44px}@media(max-width:640px){.student-shell{padding:12px;gap:12px}.student-grid{grid-template-columns:1fr}.student-shell .card{padding:16px}.student-shell h1{font-size:24px}}
+
+.student-shell .secondary{display:inline-flex;align-items:center;margin-top:8px}.student-shell .portal-item>p{margin:4px 0}.student-shell h4{margin:12px 0 6px}
