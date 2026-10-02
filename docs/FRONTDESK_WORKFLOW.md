@@ -73,3 +73,7 @@ University, course and intake fields have searchable dropdowns. Type a name to s
 choose an existing option or click Add “name” when it is missing. New options are shared
 with other counselors. Country/level and recommendation details remain stored in each
 student's historical suggestion even when more options are added later.
+
+### Upload scanned documents
+
+Open the visitor profile → Counseling → Uploaded documents. Choose multiple PDF, PNG or JPEG files and upload them together. Each file immediately appears on the profile. Select or type its document type (for example Passport or Class 10th), edit its document name and save. Counselors can see and download the uploaded files without an extra verification action. Uploading documents is optional. The app does not impose a file-size limit; hosting request limits still apply.

@@ -209,7 +209,7 @@ def get_document(request,pk,write=False):
 
 
 def validate_upload(upload):
-    if not upload or upload.size>5*1024*1024:raise ValidationError('Upload a PDF, PNG or JPEG under 5 MB.')
+    if not upload:raise ValidationError('Upload a PDF, PNG or JPEG.')
     raw=upload.read();mime=''
     if raw.startswith(b'%PDF-'):
         try:
@@ -228,6 +228,25 @@ def validate_upload(upload):
     return raw,mime,filename
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
+@api_view(['POST'])
+@transaction.atomic
+@idempotent()
+def document_batch_upload(request):
+    person=person_for(request,request.data.get('person_id'),'edit')
+    files=request.FILES.getlist('files')
+    if not 1<=len(files)<=20:raise ValidationError('Choose between 1 and 20 files.')
+    validated=[validate_upload(upload) for upload in files]
+    documents=[]
+    for raw,mime,filename in validated:
+        doc=Document.objects.create(person=person,type='Unclassified',title=filename,required=False,status='UPLOADED',version=1)
+        checksum=hashlib.sha256(raw).hexdigest()
+        DocumentVersion.objects.create(document=doc,version=1,filename=filename,mime=mime,data=raw,checksum=checksum,uploaded_by=request.user)
+        audit(request,'ADMISSION_DOCUMENT_UPLOADED',person,new={'document_id':str(doc.pk),'version':1,'checksum':checksum})
+        documents.append(doc_data(doc))
+    return Response({'results':documents},status=201)
+
+
+@extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
 @api_view(['GET','PATCH','POST'])
 @transaction.atomic
 def document_detail(request,pk):
@@ -239,6 +258,17 @@ def document_detail(request,pk):
         audit(request,'ADMISSION_DOCUMENT_UPLOADED',doc.person,new={'document_id':str(doc.pk),'version':doc.version,'checksum':hashlib.sha256(raw).hexdigest()})
         if doc.application:event(request,doc.application,'DOCUMENT_UPLOADED',new={'document_id':str(doc.pk),'version':doc.version})
     elif request.method=='PATCH':
+        if set(request.data).issubset({'type','title'}) and request.data:
+            old={'type':doc.type,'title':doc.title}
+            new_type=serializers.CharField(max_length=80).run_validation(request.data.get('type',doc.type))
+            new_title=serializers.CharField(max_length=160).run_validation(request.data.get('title',doc.title))
+            if doc.application_id and Document.objects.filter(application_id=doc.application_id,type=new_type).exclude(pk=doc.pk).exists():raise ValidationError('This document type already exists for the application.')
+            doc.type=new_type;doc.title=new_title
+            if old!={'type':doc.type,'title':doc.title}:
+                if doc.version:doc.status='UPLOADED';doc.verified_by=None;doc.verified_at=None
+                doc.save()
+                audit(request,'ADMISSION_DOCUMENT_RENAMED',doc.person,old=old,new={'document_id':str(doc.pk),'type':doc.type,'title':doc.title})
+            return Response(doc_data(doc))
         if profile(request.user).role=='FRONTDESK':raise PermissionDenied('Frontdesk officers upload documents; counselors review them.')
         require_fields(request.data,['status','expires_at','reason'])
         state=request.data.get('status',doc.status)

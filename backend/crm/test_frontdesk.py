@@ -231,3 +231,36 @@ class FrontdeskWorkflowTests(TestCase):
         self.assertEqual(CounselingOption.objects.count(),3)
         self.client.force_authenticate(self.desk);self.assertEqual(self.client.get(url,{'kind':'UNIVERSITY'}).status_code,200)
         self.assertEqual(self.client.post(url,{'kind':'UNIVERSITY','name':'Other'},format='json').status_code,403)
+
+    def test_multiple_uploads_then_edit_each_document_name_and_type(self):
+        import io
+        from PIL import Image
+        self.client.force_authenticate(self.desk)
+        buffer=io.BytesIO();Image.new('RGB',(10,10),'white').save(buffer,format='PNG')
+        def upload(name):return SimpleUploadedFile(name,buffer.getvalue(),content_type='image/png')
+        r=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[upload('passport.png'),upload('class10.png'),upload('class12.png'),upload('degree.png'),upload('marks.png')]},format='multipart',HTTP_IDEMPOTENCY_KEY='batch-documents')
+        self.assertEqual(r.status_code,201,r.data);self.assertEqual(len(r.data['results']),5)
+        self.assertEqual(Document.objects.count(),5)
+        r=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[upload('passport.png'),upload('class10.png'),upload('class12.png'),upload('degree.png'),upload('marks.png')]},format='multipart',HTTP_IDEMPOTENCY_KEY='batch-documents')
+        self.assertEqual(r.status_code,201,r.data);self.assertEqual(Document.objects.count(),5)
+        doc=Document.objects.first()
+        self.assertEqual(doc.status,'UPLOADED');self.assertEqual(doc.type,'Unclassified');self.assertFalse(doc.required)
+        r=self.client.patch(f'/api/v1/admissions/documents/{doc.pk}/',{'type':'Class 10th','title':'Class 10 transcript'},format='json')
+        self.assertEqual(r.status_code,200,r.data);doc.refresh_from_db();self.assertEqual(doc.type,'Class 10th');self.assertEqual(doc.title,'Class 10 transcript')
+        self.client.force_authenticate(self.counselor)
+        rows=self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).data['results']
+        self.assertEqual(len(rows),5);self.assertTrue(all(row['version']==1 and row['status']=='UPLOADED' for row in rows))
+
+    def test_invalid_batch_rolls_back_all_files_and_large_file_has_no_app_limit(self):
+        import io
+        from PIL import Image
+        from admissions.api import validate_upload
+        self.client.force_authenticate(self.desk)
+        buffer=io.BytesIO();Image.new('RGB',(10,10),'white').save(buffer,format='PNG')
+        valid=SimpleUploadedFile('valid.png',buffer.getvalue(),content_type='image/png')
+        invalid=SimpleUploadedFile('bad.png',b'not an image',content_type='image/png')
+        r=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[valid,invalid]},format='multipart')
+        self.assertEqual(r.status_code,400);self.assertFalse(Document.objects.exists())
+        large=SimpleUploadedFile('large.png',buffer.getvalue()+b'\0'*(6*1024*1024),content_type='image/png')
+        self.assertGreater(large.size,5*1024*1024)
+        raw,mime,_=validate_upload(large);self.assertEqual(mime,'image/png');self.assertGreater(len(raw),5*1024*1024)

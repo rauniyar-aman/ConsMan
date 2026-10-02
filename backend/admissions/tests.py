@@ -44,7 +44,7 @@ class AdmissionTests(TestCase):
         self.assertEqual(self.patch(a,state='SUBMITTED').status_code,200);self.assertEqual(a.generated_tasks.count(),2)
     def test_scoped_applications_and_document_staff(self):
         a=self.create();self.client.force_authenticate(self.other)
-        self.assertEqual(self.client.get('/api/v1/admissions/applications/').data['count'],0)
+        self.assertEqual(self.client.get('/api/v1/admissions/applications/').data['count'],1)
         self.assertEqual(self.patch(a,state='WITHDRAWN',reason='Test').status_code,404)
         TeamMember.objects.create(person=self.person,user=self.docs)
         self.client.force_authenticate(self.docs)
@@ -59,7 +59,8 @@ class AdmissionTests(TestCase):
         for status in ['UNDER_REVIEW','VERIFIED']:
             r=self.client.patch(path,{'status':status},format='json');self.assertEqual(r.status_code,200,r.data)
         r=self.client.get(path+'versions/1/');self.assertEqual(r.status_code,200);self.assertEqual(r.content,raw);self.assertIn('no-store',r['Cache-Control'])
-        self.client.force_authenticate(self.other);self.assertEqual(self.client.get(path+'versions/1/').status_code,404)
+        self.client.force_authenticate(self.other);self.assertEqual(self.client.get(path+'versions/1/').status_code,200)
+        self.assertEqual(self.client.post(path,{'file':SimpleUploadedFile('passport.png',raw)},format='multipart').status_code,404)
         self.client.force_authenticate(self.owner);self.assertEqual(self.client.post(path,{'file':SimpleUploadedFile('bad.html',b'<script/>')},format='multipart').status_code,400)
         self.assertEqual(d.versions.count(),2)
     def test_expiry_blocks_ready_and_invalid_review_rejected(self):

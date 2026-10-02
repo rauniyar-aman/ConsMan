@@ -228,7 +228,7 @@ def workspace(request):
 def valid_file(upload):
     import pymupdf
     from PIL import Image
-    if not upload or upload.size>5*1024*1024:raise ValidationError('Upload a PDF, PNG or JPEG up to 5 MB.')
+    if not upload:raise ValidationError('Upload a PDF, PNG or JPEG.')
     raw=upload.read()
     try:
         if raw.startswith(b'%PDF-'):
