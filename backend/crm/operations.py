@@ -123,7 +123,9 @@ def lifecycle(request,pk):
 def reassign(request,pk):
     person=object_person(request,pk,'reassign',True)
     owner=get_object_or_404(User,pk=request.data.get('owner_id'),is_active=True,staff__role='COUNSELOR',staff__branch=person.branch)
-    assign_owner(request,person,owner,required_reason(request.data))
+    if person.owner_id==owner.pk:return Response({'ok':True})
+    reason=required_reason(request.data) if person.owner_id else str(request.data.get('reason','')).strip() or 'Initial counselor assignment'
+    assign_owner(request,person,owner,reason)
     return Response({'ok':True})
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)

@@ -146,3 +146,13 @@ class FrontdeskWorkflowTests(TestCase):
         r=self.client.post(f'/api/v1/followups/{third.pk}/update/',{'due_at':(third.due_at+timedelta(days=1)).isoformat(),'notes':'New instructions'},format='json');self.assertEqual(r.status_code,200,r.data)
         audit=AuditEvent.objects.get(action='FOLLOWUP_CHANGED');self.assertEqual(audit.old['due_at'],old_due);self.assertEqual(audit.old['notes'],'Original instructions')
         self.assertIn('Original instructions',Activity.objects.get(subject='Follow-up updated: Next call').notes)
+
+    def test_initial_assignment_needs_no_reason_but_reassignment_does(self):
+        self.client.force_authenticate(self.desk)
+        self.person.owner=None;self.person.save(update_fields=['owner'])
+        path=f'/api/v1/people/{self.person.pk}/reassign/'
+        result=self.client.post(path,{'owner_id':self.uk.pk},format='json')
+        self.assertEqual(result.status_code,200,result.data)
+        self.person.refresh_from_db();self.assertEqual(self.person.owner,self.uk)
+        self.assertEqual(self.client.post(path,{'owner_id':self.counselor.pk},format='json').status_code,400)
+        self.assertEqual(self.client.post(path,{'owner_id':self.uk.pk},format='json').status_code,200)
