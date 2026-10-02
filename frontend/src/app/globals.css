@@ -119,3 +119,5 @@
 .profile-page{padding:24px;min-height:100vh}.profile-page .person-panel{width:100%;max-width:1200px;height:auto;min-height:calc(100vh - 48px);overflow:visible;margin:auto;border:1px solid var(--border);border-radius:8px}.profile-page .person-facts{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.visitor-form-modal{padding:20px}@media(max-width:640px){.profile-page{padding:10px}.profile-page .person-panel{padding:16px}.profile-page .person-facts{grid-template-columns:1fr 1fr}}
 
 .profile-edit-modal .inline-form{margin:0;border:0;background:white}.profile-edit-modal .inline-form>h3{display:none}.profile-edit-modal .modal-header{align-items:center}
+
+.conversion-notice{margin:12px 0 20px}.conversion-notice>strong{display:block;margin-bottom:10px}.conversion-notice .inline-form{background:white}
