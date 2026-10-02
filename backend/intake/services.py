@@ -7,7 +7,7 @@ from django.db.models import F,Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError, Throttled, PermissionDenied
 from crm.models import Person, ContactMethod, ConsentRecord, FollowUp, BusinessCalendar, SystemPolicy, AuditEvent
-from crm.services import next_reference, duplicate_signals, activity, audit, assign_owner, automatic_owner, notify, notify_managers, refresh_next_action
+from crm.services import normalize_phone,next_reference, duplicate_signals, activity, audit, assign_owner, automatic_owner, notify, notify_managers, refresh_next_action
 from crm.calendar import start_sla,business_due
 from .models import IntakeSubmission,OtpChallenge,MessageDelivery,RateBucket,RateEvent,IntakeReview
 from .providers import digest,get_provider,DeliveryFailure
@@ -97,14 +97,16 @@ def process_verified(request,submission,chosen_person=None,allow_create=False):
         IntakeReview.objects.update_or_create(submission=submission,defaults={'candidate_ids':[str(m['person'].pk) for m in medium],'confidence':'MEDIUM'})
     else:
         qr=submission.qr
-        person=Person.objects.create(ref=next_reference(),full_name=payload['full_name'],branch=qr.branch,source=qr.campaign.source,campaign=qr.campaign,created_by=request.user if request.user.is_authenticated else None,preferred_country=payload.get('preferred_country',''),preferred_course=payload.get('preferred_course',''),preferred_intake=payload.get('preferred_intake',''),address=payload.get('address',''),guardian_name=payload.get('guardian_name',''),guardian_contact=payload.get('guardian_contact',''),highest_education=payload.get('highest_education',''),work_experience=payload.get('work_experience',''),previous_visa_refusal=payload.get('previous_visa_refusal','UNKNOWN'),preferred_countries=payload.get('preferred_countries',[]),study_levels=payload.get('study_levels',[]))
+        person=Person.objects.create(ref=next_reference(),full_name=payload['full_name'],branch=qr.branch,source=qr.campaign.source,campaign=qr.campaign,created_by=request.user if request.user.is_authenticated else None,preferred_country=payload.get('preferred_country',''),preferred_course=payload.get('preferred_course',''),preferred_intake=payload.get('preferred_intake',''),preferred_university=payload.get('preferred_university',''),best_contact_method=payload.get('best_contact_method','CALL'),address=payload.get('address',''),guardian_name=payload.get('guardian_name',''),guardian_contact=payload.get('guardian_contact',''),highest_education=payload.get('highest_education',''),work_experience=payload.get('work_experience',''),previous_visa_refusal=payload.get('previous_visa_refusal','UNKNOWN'),preferred_countries=payload.get('preferred_countries',[]),study_levels=payload.get('study_levels',[]))
         ContactMethod.objects.create(person=person,type='PHONE',raw_value=payload['phone'],normalized_value=submission.phone_e164,is_primary=True,verified_at=submission.verified_at,verified_via=submission.verified_via)
         if payload.get('email'):ContactMethod.objects.create(person=person,type='EMAIL',raw_value=payload['email'],normalized_value=payload['email'].strip().lower(),is_primary=True)
+        if payload.get('alternate_phone'):ContactMethod.objects.create(person=person,type='WHATSAPP',raw_value=payload['alternate_phone'],normalized_value=normalize_phone(payload['alternate_phone']))
+        if payload.get('heard_about_us'):activity(request,person,'How the visitor found us',payload['heard_about_us'],'NOTE')
         from crm.models import EducationRecord,TestScore
         for education in payload.get('education',[]):EducationRecord.objects.create(person=person,**education)
         for score in payload.get('test_scores',[]):TestScore.objects.create(person=person,**score)
         submission.outcome='CREATED'
-        owner=automatic_owner(qr.branch)
+        owner=None if payload.get('_paper_entry') else automatic_owner(qr.branch)
         start_sla(person,'ASSIGNMENT');start_sla(person,'FIRST_CONTACT')
         if owner:assign_owner(request,person,owner,'AUTO: round-robin')
         else:notify_managers(qr.branch,'INTAKE','Verified visitor awaiting assignment',person)

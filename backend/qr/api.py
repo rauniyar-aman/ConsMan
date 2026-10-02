@@ -4,7 +4,7 @@ import copy
 from botocore.exceptions import ClientError
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F,Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -22,7 +22,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4,A5
 from reportlab.lib.utils import ImageReader
 from crm.models import Branch,Campaign,Source
-from crm.permissions import branch_scope
+from crm.permissions import branch_scope,profile,MATRIX
 from crm.services import audit
 from crm.operations import required_reason
 from .models import QRCode,QRAsset
@@ -79,6 +79,7 @@ def qr_list(request):
     content=request.data.get('content',{})
     if not isinstance(content,dict):raise ValidationError('Content must be an object.')
     qr=QRCode.objects.create(label=label,branch=branch,campaign=campaign,content_type=kind,content=content,design=request.data.get('design',{}),created_by=request.user)
+    validate_staff_contact(qr)
     create_asset(qr)
     audit(request,'QR_CREATED',qr,new={'code':qr.code,'type':kind})
     return Response(qr_data(qr),status=201)
@@ -137,6 +138,7 @@ def qr_update(request,pk):
     if 'design' in request.data:
         if not isinstance(request.data['design'],dict):raise ValidationError('Design must be an object.')
         qr.design={**qr.design,**request.data['design']}
+    validate_staff_contact(qr)
     if {'design','content','content_type'} & set(request.data):create_asset(qr)
     qr.save();audit(request,'QR_UPDATED',qr,old=old,new={'label':qr.label,'branch_id':qr.branch_id,'campaign_id':qr.campaign_id,'content_type':qr.content_type,'content':{k:v for k,v in qr.content.items() if k!='password'},'status':qr.status,'asset_version':qr.asset_version,'archived':bool(qr.archived_at)})
     return Response(qr_data(qr))
@@ -144,7 +146,8 @@ def qr_update(request,pk):
 @extend_schema(responses=OpenApiTypes.BINARY)
 @api_view(['GET'])
 def qr_download(request,pk):
-    qr=get_object_or_404(branch_scope(request.user,QRCode.objects.all(),'qr'),pk=pk)
+    qs=branch_scope(request.user,QRCode.objects.all(),'qr') if MATRIX.get(profile(request.user).role,{}).get('qr') else readable_codes(request)
+    qr=get_object_or_404(qs,pk=pk)
     try:version=int(request.query_params.get('version',qr.asset_version))
     except ValueError:raise ValidationError('Invalid asset version.')
     asset=get_object_or_404(QRAsset,qr=qr,version=version,decode_passed=True)
@@ -200,3 +203,24 @@ def qr_download(request,pk):
     else:raise ValidationError('Choose PNG, SVG, or PDF.')
     audit(request,'QR_DOWNLOADED',qr,new={'version':version,'format':kind})
     response=HttpResponse(data,content_type=mime);response['Content-Disposition']=f'attachment; filename="{qr.code}-v{version}.{kind}"';return response
+
+
+def readable_codes(request):
+    qs=branch_scope(request.user,QRCode.objects.filter(content_type__in=['WIFI','REGISTRATION','WHATSAPP'],status='ACTIVE',archived_at__isnull=True),'qr_view')
+    qs=qs.filter(Q(expires_at__isnull=True)|Q(expires_at__gt=timezone.now()))
+    if not MATRIX.get(profile(request.user).role,{}).get('qr'):
+        qs=qs.filter(~Q(content_type='WHATSAPP')|Q(content__staff_user_id__isnull=True)|Q(content__staff_user_id=None)|Q(content__staff_user_id=request.user.pk))
+    return qs
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+@api_view(['GET'])
+def staff_library(request):
+    return Response({'results':[qr_data(q) for q in readable_codes(request).select_related('branch','campaign').order_by('-created_at')[:200]]})
+
+
+def validate_staff_contact(qr):
+    if qr.content_type!='WHATSAPP' or qr.content.get('staff_user_id') is None:return
+    from django.contrib.auth.models import User
+    staff_id=serializers.IntegerField().run_validation(qr.content['staff_user_id'])
+    get_object_or_404(User,pk=staff_id,is_active=True,staff__branch=qr.branch)
+    qr.content['staff_user_id']=staff_id

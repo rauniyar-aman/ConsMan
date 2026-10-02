@@ -15,6 +15,7 @@ class StaffProfile(models.Model):
     class Role(models.TextChoices):
         ADMIN = 'ADMIN', 'Super Admin'
         MANAGER = 'MANAGER', 'Branch Manager'
+        FRONTDESK = 'FRONTDESK', 'Frontdesk Officer'
         COUNSELOR = 'COUNSELOR', 'Counselor'
         DOCS = 'DOCS', 'Documentation Staff'
         FINANCE = 'FINANCE', 'Finance Staff'
@@ -323,3 +324,15 @@ class Document(models.Model):
     status = models.CharField(max_length=20, default='REQUESTED')
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class CounselingRecord(models.Model):
+    person = models.OneToOneField(Person, on_delete=models.PROTECT, related_name='counseling_record')
+    summary = models.TextField(blank=True)
+    decisions = models.TextField(blank=True)
+    documents_checklist = models.JSONField(default=list)
+    pending_documents = models.TextField(blank=True)
+    next_step = models.CharField(max_length=200, blank=True)
+    service_taken = models.CharField(max_length=200, blank=True)
+    remarks = models.TextField(blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    updated_at = models.DateTimeField(auto_now=True)

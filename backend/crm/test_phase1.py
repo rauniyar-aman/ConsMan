@@ -286,6 +286,7 @@ class PhaseOneTests(TestCase):
                 'archive':('post',f'people/{person.pk}/archive/',{'reason':'Reviewed archive'}),
                 'discovery':('get','discovery/?search=Permission',None),
             }
+            if role=='FRONTDESK':calls['create']=('post','intake/paper/',{'code':self.qr.code,'full_name':'Paper permission fixture','phone':'9801234511','channel':'WHATSAPP','consent':True})
             self.client.force_authenticate(user)
             for action,(method,path,data) in calls.items():
                 with self.subTest(role=role,action=action),transaction.atomic():

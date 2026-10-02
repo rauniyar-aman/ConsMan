@@ -2,7 +2,7 @@ import type {components} from './generated-api';
 export type User = components['schemas']['SessionUser'];
 export type CreatePersonInput = components['schemas']['CreatePerson'];
 export type Person = { id: string; ref: string; full_name: string; phone: string; email: string; branch_name: string; owner_name: string; source_name: string; stage: string; lead_status: string; temperature: string; preferred_country: string; preferred_course: string; address: string; next_action_due_at: string | null; created_at: string };
-export type FollowUp = { id: number; person_id: string; person_name: string; person_ref: string; subject: string; method: string; due_at: string; completed_at: string | null; outcome: string };
+export type FollowUp = { id: number; person_id: string; person_name: string; person_ref: string; subject: string; method: string; due_at: string; completed_at: string | null; outcome: string; notes?:string; owner_name?:string };
 export type Activity = { id: number; type: string; subject: string; notes: string; actor: string; performed_at: string };
 export type Detail = { person: Person & Record<string,unknown>; timeline:{id:string;kind:string;subject:string;notes:string;actor:string;at:string;edited:boolean}[]; activities: Activity[]; followups: FollowUp[]; contacts:Row[]; education:Row[]; test_scores:Row[]; tasks:Row[]; team:Row[]; sla_timers:Row[] };
 export type Row = Record<string,unknown>;

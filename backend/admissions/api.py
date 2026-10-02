@@ -30,7 +30,7 @@ def people(request,action='view'):
 
 
 def writable(request):
-    if scope(request.user,'edit')=='documents':raise PermissionDenied('Documentation staff can update assigned documents only.')
+    if profile(request.user).role=='FRONTDESK' or scope(request.user,'edit')=='documents':raise PermissionDenied('Documentation staff can update assigned documents only.')
 
 
 def person_for(request,value,action='view'):
@@ -147,7 +147,7 @@ def application_detail(request,pk):
             Deadline.objects.create(person=app.person,application=app,type='COURSE_START',title='Revised course start',due_at=timezone.make_aware(datetime.combine(offering.intake.start_date,time(10))),source='INTAKE')
         if 'state' in request.data:transition(request,app,request.data['state'],str(request.data.get('reason',''))[:500])
     data=app_data(app)
-    data.update(documents=[doc_data(d) for d in app.documents.prefetch_related('versions')],events=list(app.events.order_by('-created_at').values('id','type','actor_id','old','new','reason','created_at')),deadlines=list(app.deadlines.values()),blockers=list(app.person.admission_blockers.filter(Q(application=app)|Q(application__isnull=True)).values()),offers=list(app.offers.values()),tasks=[{'id':link.task_id,'title':link.task.title,'due_at':link.task.due_at,'status':link.task.status,'milestone':link.milestone} for link in app.generated_tasks.select_related('task')],ready=not incomplete_documents(app) and not blockers(app),can_edit=bool(profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR']),can_documents=bool(profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR','DOCS']))
+    data.update(documents=[doc_data(d) for d in app.documents.prefetch_related('versions')],events=list(app.events.order_by('-created_at').values('id','type','actor_id','old','new','reason','created_at')),deadlines=list(app.deadlines.values()),blockers=list(app.person.admission_blockers.filter(Q(application=app)|Q(application__isnull=True)).values()),offers=list(app.offers.values()),tasks=[{'id':link.task_id,'title':link.task.title,'due_at':link.task.due_at,'status':link.task.status,'milestone':link.milestone} for link in app.generated_tasks.select_related('task')],ready=not incomplete_documents(app) and not blockers(app),can_edit=bool(profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR']),can_documents=bool(profile(request.user).role in ['ADMIN','MANAGER','COUNSELOR','DOCS','FRONTDESK']))
     return Response(data)
 
 
@@ -183,10 +183,13 @@ def preferences(request,person_id):
 
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
-@api_view(['POST'])
+@api_view(['GET','POST'])
 @transaction.atomic
 @idempotent()
 def document_create(request):
+    if request.method=='GET':
+        person=person_for(request,request.query_params.get('person_id'))
+        return Response({'results':[doc_data(d) for d in Document.objects.filter(person=person).prefetch_related('versions')]})
     person=person_for(request,request.data.get('person_id'),'edit')
     app=get_object_or_404(apps(request,'edit'),pk=request.data['application_id']) if request.data.get('application_id') else None
     if app and app.person_id!=person.pk:raise ValidationError('Document person must match the application.')
@@ -236,6 +239,7 @@ def document_detail(request,pk):
         audit(request,'ADMISSION_DOCUMENT_UPLOADED',doc.person,new={'document_id':str(doc.pk),'version':doc.version,'checksum':hashlib.sha256(raw).hexdigest()})
         if doc.application:event(request,doc.application,'DOCUMENT_UPLOADED',new={'document_id':str(doc.pk),'version':doc.version})
     elif request.method=='PATCH':
+        if profile(request.user).role=='FRONTDESK':raise PermissionDenied('Frontdesk officers upload documents; counselors review them.')
         require_fields(request.data,['status','expires_at','reason'])
         state=request.data.get('status',doc.status)
         if state not in DOCUMENT_STATES:raise ValidationError('Unsupported document status.')

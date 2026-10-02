@@ -57,12 +57,13 @@ class ActivitySerializer(serializers.ModelSerializer):
         read_only_fields = ['id','actor','performed_at','corrects']
 
 class FollowUpSerializer(serializers.ModelSerializer):
+    owner_name = serializers.CharField(source='owner.get_full_name', read_only=True, default='Unassigned')
     person_name = serializers.CharField(source='person.full_name', read_only=True)
     person_ref = serializers.CharField(source='person.ref', read_only=True)
     person_id = serializers.UUIDField(read_only=True)
     class Meta:
         model = FollowUp
-        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','completed_at','outcome']
+        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','owner_name','completed_at','outcome']
         read_only_fields = ['id','completed_at','outcome','status']
 
 class LoginSerializer(serializers.Serializer):

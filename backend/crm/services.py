@@ -112,7 +112,7 @@ def assign_owner(request,person,owner,reason):
     previous=person.owner
     person.owner=owner;person.save(update_fields=['owner','updated_at'])
     OwnershipHistory.objects.create(person=person,from_user=previous,to_user=owner,reason=reason,changed_by=request.user if request.user.is_authenticated else None,request_id=request.request_id)
-    person.followups.filter(completed_at__isnull=True,status__in=['OPEN','IN_PROGRESS']).update(owner=owner)
+    person.followups.filter(completed_at__isnull=True,status__in=['OPEN','IN_PROGRESS']).filter(Q(owner=previous)|Q(owner__isnull=True)).update(owner=owner)
     refresh_next_action(person)
     activity(request,person,f'Assigned to {owner.get_full_name() if owner else "manager queue"}',reason,'ASSIGNMENT')
     audit(request,'OWNER_CHANGED',person,{'owner_id':previous.pk if previous else None},{'owner_id':owner.pk if owner else None,'reason':reason})

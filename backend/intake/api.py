@@ -42,6 +42,10 @@ class VisitorSerializer(serializers.Serializer):
     study_levels=serializers.ListField(child=serializers.CharField(max_length=80),required=False,max_length=20)
     preferred_course=serializers.CharField(max_length=160,required=False,allow_blank=True)
     preferred_intake=serializers.CharField(max_length=80,required=False,allow_blank=True)
+    preferred_university=serializers.CharField(max_length=160,required=False,allow_blank=True)
+    alternate_phone=serializers.CharField(max_length=40,required=False,allow_blank=True)
+    heard_about_us=serializers.CharField(max_length=100,required=False,allow_blank=True)
+    best_contact_method=serializers.ChoiceField(choices=['CALL','WHATSAPP','EMAIL','MEETING'],required=False)
     address=serializers.CharField(max_length=255,required=False,allow_blank=True)
     guardian_name=serializers.CharField(max_length=160,required=False,allow_blank=True)
     guardian_contact=serializers.CharField(max_length=40,required=False,allow_blank=True)
@@ -53,6 +57,7 @@ class VisitorSerializer(serializers.Serializer):
     def validate(self,data):
         if not data['consent'] or data.get('website'):raise ValidationError('Consent is required and the request must be valid.')
         phone=normalize_phone(data['phone'])
+        if data.get('alternate_phone'):normalize_phone(data['alternate_phone'])
         if not self.context.get('staff') and not any(phone.startswith(prefix) for prefix in settings.OTP_ALLOWED_COUNTRY_PREFIXES):raise ValidationError({'phone':'This country code requires staff-assisted registration.'})
         for item in data.get('education',[]):
             if set(item)-{'level','institute','degree_stream','grade_or_percent','passed_year'} or not item.get('level') or not item.get('institute'):raise ValidationError('Invalid education fields.')
@@ -141,27 +146,7 @@ def verification(request,pk,operation='resume'):
     if operation=='resume':
         submission=resume(request,pk)
         return Response(submission_result(submission))
-    if operation=='verify':
-        with transaction.atomic():
-            submission=resume(request,pk,True)
-            if submission.verified_at:return Response({'verified':True,'message':'Thank you. Our team will contact you about your next steps.'})
-            challenge=submission.challenges.select_for_update(of=('self',)).order_by('-last_sent_at').first()
-            if not challenge:raise ValidationError('No code is available. Your details are saved.')
-            if challenge.status=='LOCKED':return Response({'code':'otp_locked','message':'Your details are saved. Ask the front desk to verify your number.','attempts_left':0},status=400)
-            if challenge.status!='PENDING' or challenge.expires_at<timezone.now():
-                challenge.status='EXPIRED';challenge.save(update_fields=['status']);submission.unverified_reason='EXPIRED';submission.save(update_fields=['unverified_reason'])
-                return Response({'code':'otp_expired','message':'This code expired. Your details are saved.'},status=400)
-            candidate=str(request.data.get('code',''))
-            if len(candidate)!=6 or not candidate.isdigit() or not hmac.compare_digest(challenge.code_hash,digest(f'{challenge.salt}:{candidate}')):
-                challenge.attempts+=1;left=max(policy('otp_max_attempts')-challenge.attempts,0)
-                challenge.status='LOCKED' if not left else 'PENDING';challenge.save()
-                submission.unverified_reason='LOCKED' if not left else 'WRONG_OTP';submission.save(update_fields=['unverified_reason'])
-                if not left:AuditEvent.objects.create(action='OTP_LOCKED',branch=submission.qr.branch,object_id=str(submission.pk),request_id=request.request_id)
-                return Response({'code':'otp_invalid','message':'Incorrect code. Your details are saved.','attempts_left':left},status=400)
-            challenge.status='VERIFIED';challenge.save()
-            submission.status='VERIFIED';submission.verified_at=timezone.now();submission.verified_via=f'OTP_{challenge.channel}';submission.unverified_reason='';submission.save()
-            process_verified(request,submission)
-        return Response({'verified':True,'message':'Thank you. Our team will contact you about your next steps.'})
+    if operation=='verify':return verify_otp(request,pk)
     if operation not in ['resend','phone']:raise ValidationError('Unknown verification operation.')
     with transaction.atomic():
         submission=resume(request,pk,True)
@@ -242,6 +227,7 @@ def staff_assisted(request):
         codes=QRCode.objects.filter(status='ACTIVE',content_type='REGISTRATION',archived_at__isnull=True)
         if profile(request.user).role!='ADMIN':codes=codes.filter(branch=profile(request.user).branch)
         return Response([{'id':q.code,'name':q.label} for q in codes if active(q)])
+    if profile(request.user).role=='FRONTDESK':raise PermissionDenied('Use paper registration and verify the visitor OTP.')
     qr=get_object_or_404(QRCode,code=request.data.get('code'),archived_at__isnull=True)
     if not active(qr) or qr.content_type!='REGISTRATION':raise ValidationError('Choose an active registration code.')
     if profile(request.user).role!='ADMIN' and qr.branch_id!=profile(request.user).branch_id:raise PermissionDenied()
@@ -297,3 +283,68 @@ def gateway_webhook(request):
             if state in ['FAILED','SENT']:items=items.exclude(status='DELIVERED')
             items.update(status='DELIVERED' if state=='READ' else state)
     return Response({'ok':True})
+
+
+@extend_schema(request=VisitorSerializer,responses=OpenApiTypes.OBJECT)
+@api_view(['POST'])
+def paper_registration(request):
+    from crm.permissions import scope
+    scope(request.user,'create')
+    qr=get_object_or_404(QRCode,code=request.data.get('code'),archived_at__isnull=True,content_type='REGISTRATION')
+    if not active(qr):raise ValidationError('Choose an active registration form.')
+    if profile(request.user).role!='ADMIN' and qr.branch_id!=profile(request.user).branch_id:raise PermissionDenied()
+    data=dict(request.data);data['turnstile_token']='staff'
+    if set(data)-set(VisitorSerializer().fields):raise ValidationError('Unsupported registration fields.')
+    serializer=VisitorSerializer(data=data,context={'staff':True});serializer.is_valid(raise_exception=True)
+    values=dict(serializer.validated_data);values.pop('turnstile_token');values.pop('website',None);values['_paper_entry']=True
+    key=request.headers.get('Idempotency-Key','')
+    if not key or len(key)>160:raise ValidationError('A valid Idempotency-Key is required.')
+    request_hash=hashlib.sha256(json.dumps(values,sort_keys=True).encode()).hexdigest()
+    with transaction.atomic():
+        sub,created=IntakeSubmission.objects.get_or_create(idempotency_key=key,defaults={'qr':qr,'payload':values,'phone_e164':normalize_phone(values['phone']),'channel_choice':values['channel'],'ip_hash':digest(client_ip(request)),'request_hash':request_hash,'resume_token_hash':'','resume_expires_at':timezone.now()+timedelta(hours=24),'purge_after':timezone.now()+timedelta(days=policy('unverified_retention_days'))})
+        if sub.qr.branch_id!=qr.branch_id or not hmac.compare_digest(sub.request_hash,request_hash):raise ValidationError('Idempotency key conflict.')
+        if not created:return Response(submission_result(sub))
+        consume(f'staff-paper:{request.user.pk}',settings.PUBLIC_SUBMISSIONS_PER_DAY)
+        sub.resume_token_hash=digest(resume_token(sub));sub.save(update_fields=['resume_token_hash'])
+        audit(request,'PAPER_REGISTRATION_SAVED',qr,new={'submission_id':str(sub.pk)})
+    sent=False
+    try:
+        with transaction.atomic():
+            sub=IntakeSubmission.objects.select_for_update(of=('self',)).get(pk=sub.pk)
+            code,delivery,provider=create_challenge(sub,sub.channel_choice)
+        sent=deliver(code,delivery,provider)
+    except Throttled:
+        IntakeSubmission.objects.filter(pk=sub.pk).update(unverified_reason='SEND_FAILED')
+    sub.refresh_from_db()
+    return Response(submission_result(sub,sent),status=201)
+
+
+def verify_otp(request,pk,staff_user=None):
+    with transaction.atomic():
+        submission=resume(request,pk,True)
+        if submission.verified_at:return Response({'verified':True,'message':'Thank you. Our team will contact you about your next steps.'})
+        challenge=submission.challenges.select_for_update(of=('self',)).order_by('-last_sent_at').first()
+        if not challenge:raise ValidationError('No code is available. Your details are saved.')
+        if challenge.status=='LOCKED':return Response({'code':'otp_locked','message':'Your details are saved. Ask the front desk to verify your number.','attempts_left':0},status=400)
+        if challenge.status!='PENDING' or challenge.expires_at<timezone.now():
+            challenge.status='EXPIRED';challenge.save(update_fields=['status']);submission.unverified_reason='EXPIRED';submission.save(update_fields=['unverified_reason'])
+            return Response({'code':'otp_expired','message':'This code expired. Your details are saved.'},status=400)
+        candidate=str(request.data.get('code',''))
+        if len(candidate)!=6 or not candidate.isdigit() or not hmac.compare_digest(challenge.code_hash,digest(f'{challenge.salt}:{candidate}')):
+            challenge.attempts+=1;left=max(policy('otp_max_attempts')-challenge.attempts,0)
+            challenge.status='LOCKED' if not left else 'PENDING';challenge.save()
+            submission.unverified_reason='LOCKED' if not left else 'WRONG_OTP';submission.save(update_fields=['unverified_reason'])
+            if not left:AuditEvent.objects.create(action='OTP_LOCKED',branch=submission.qr.branch,object_id=str(submission.pk),request_id=request.request_id)
+            return Response({'code':'otp_invalid','message':'Incorrect code. Your details are saved.','attempts_left':left},status=400)
+        challenge.status='VERIFIED';challenge.save()
+        submission.status='VERIFIED';submission.verified_at=timezone.now();submission.verified_via=f'OTP_{challenge.channel}';submission.unverified_reason='';submission.save()
+        if staff_user:submission.verified_by_staff=staff_user;submission.save(update_fields=['verified_by_staff'])
+        process_verified(request,submission)
+    return Response({'verified':True,'person_id':str(submission.person_id) if staff_user and submission.person_id else None,'message':'Thank you. Our team will contact you about your next steps.'})
+
+
+@extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
+@api_view(['POST'])
+def paper_verify(request,pk):
+    get_object_or_404(branch_scope(request.user,IntakeSubmission.objects.all(),'intake',field='qr__branch'),pk=pk)
+    return verify_otp(request,pk,staff_user=request.user)

@@ -22,7 +22,9 @@
     "finance_rules": "full",
     "communication_view": "full",
     "communication_send": "full",
-    "communication_templates": "full"
+    "communication_templates": "full",
+    "counseling": "full",
+    "qr_view": "full"
   },
   "MANAGER": {
     "view": "branch",
@@ -43,7 +45,9 @@
     "finance_view": "branch",
     "finance_edit": "branch",
     "communication_view": "branch",
-    "communication_send": "branch"
+    "communication_send": "branch",
+    "counseling": "branch",
+    "qr_view": "branch"
   },
   "COUNSELOR": {
     "view": "own",
@@ -55,23 +59,39 @@
     "export": "own",
     "discovery": "masked",
     "communication_view": "own",
-    "communication_send": "own"
+    "communication_send": "own",
+    "counseling": "own",
+    "qr_view": "branch"
   },
   "DOCS": {
     "view": "assigned",
     "edit": "documents",
     "work": "assigned",
-    "discovery": "masked"
+    "discovery": "masked",
+    "qr_view": "branch"
   },
   "FINANCE": {
     "finance_view": "branch",
-    "finance_edit": "branch"
+    "finance_edit": "branch",
+    "qr_view": "branch"
   },
   "MANAGEMENT": {
     "view": "full",
     "export": "reports",
     "audit": "full",
     "finance_view": "full",
-    "communication_view": "full"
+    "communication_view": "full",
+    "qr_view": "branch"
+  },
+  "FRONTDESK": {
+    "view": "branch",
+    "create": "branch",
+    "edit": "branch",
+    "work": "branch",
+    "reassign": "branch",
+    "intake": "branch",
+    "communication_view": "branch",
+    "communication_send": "branch",
+    "qr_view": "branch"
   }
 }

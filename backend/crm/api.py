@@ -151,6 +151,7 @@ class PersonViewSet(ViewSet):
     @transaction.atomic
     def create(self, request):
         access = scope(request.user, 'create')
+        if profile(request.user).role=='FRONTDESK':raise PermissionDenied('Use paper registration and verify the visitor OTP before creating a lead.')
         serializer = CreatePersonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         values = dict(serializer.validated_data)

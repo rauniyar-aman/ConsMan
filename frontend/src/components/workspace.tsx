@@ -8,11 +8,13 @@ import {api,message,label,date,type Masters,type User,type Row} from '@/lib/api'
 import {ActionForm,choices,reason,type Field} from './action-form';
 import {PasswordInput} from './password-input';
 import {WifiQr} from './wifi-qr';
+import {StaffQr} from './staff-qr';
+import {PaperRegistration} from './paper-registration';
 import {WhatsAppQr} from './whatsapp-qr';
 
-export type ExtraView='assisted'|'tasks'|'notifications'|'intake'|'qr'|'duplicates'|'access'|'imports'|'settings'|'audit'|'reports';
+export type ExtraView='staffqr'|'assisted'|'tasks'|'notifications'|'intake'|'qr'|'duplicates'|'access'|'imports'|'settings'|'audit'|'reports';
 
-const paths:Record<ExtraView,string>={assisted:'intake/assisted/',tasks:'tasks/',notifications:'notifications/',intake:'intake/submissions/',qr:'qr/',duplicates:'duplicate-review/',access:'access-requests/',imports:'imports/',settings:'settings/',audit:'audit/',reports:'reports/'};
+const paths:Record<ExtraView,string>={staffqr:'qr/library/',assisted:'intake/assisted/',tasks:'tasks/',notifications:'notifications/',intake:'intake/submissions/',qr:'qr/',duplicates:'duplicate-review/',access:'access-requests/',imports:'imports/',settings:'settings/',audit:'audit/',reports:'reports/'};
 
 const text=(r:Row,k:string)=>String(r[k]??'');
 
@@ -36,7 +38,9 @@ export function Workspace({view,user,masters,open,changed}:{view:ExtraView;user:
 
  return <div className="workspace-page">{error&&<p className="error" role="alert">{error}</p>}{action&&<div><button className="text-button" onClick={()=>setAction(null)}>Close form</button><ActionForm key={action.path+action.title} {...action} done={done}/></div>}
 
- {view==='assisted'&&<ActionForm title="Staff-assisted visitor registration" path="intake/assisted/" fields={[{name:'code',label:'Registration code',options:rows.map(r=>({id:String(r.id),name:String(r.name)})),required:true},{name:'full_name',required:true},{name:'phone',required:true},{name:'email',type:'email'},{name:'preferred_country'},{name:'preferred_course'},{name:'highest_education'},{name:'temperature',options:choices(['HOT','WARM','COLD']),value:'WARM'},{name:'summary',label:'Counseling summary',type:'textarea'},{name:'next_step'},{name:'next_due_at',label:'Next step due (NPT)',type:'datetime-local'},{name:'consent',type:'checkbox',label:'Person consented to recording details and contact',required:true}]} done={()=>{void refresh();}}/>}
+ {view==='assisted'&&user.role!=='COUNSELOR'&&<PaperRegistration codes={rows} open={open}/> }
+ {view==='assisted'&&user.role==='COUNSELOR'&&<ActionForm title="Staff-assisted visitor registration" path="intake/assisted/" fields={[{name:'code',label:'Registration code',options:rows.map(r=>({id:String(r.id),name:String(r.name)})),required:true},{name:'full_name',required:true},{name:'phone',required:true},{name:'email',type:'email'},{name:'preferred_country'},{name:'preferred_course'},{name:'highest_education'},{name:'temperature',options:choices(['HOT','WARM','COLD']),value:'WARM'},{name:'summary',label:'Counseling summary',type:'textarea'},{name:'next_step'},{name:'next_due_at',label:'Next step due (NPT)',type:'datetime-local'},{name:'consent',type:'checkbox',label:'Person consented to recording details and contact',required:true}]} done={()=>{void refresh();}}/>}
+ {view==='staffqr'&&<StaffQr rows={rows}/>}
 
  {view==='tasks'&&<><div className="toolbar"><button className="primary" onClick={()=>edit('Create task','tasks/',[{name:'title',required:true},{name:'person_id',label:'Person ID (optional)'},{name:'owner_id',type:'number',options:masters.users||masters.owners,value:user.id},{name:'priority',options:choices(['LOW','NORMAL','HIGH','URGENT']),value:'NORMAL'},{name:'due_at',type:'datetime-local',required:true}])}>New task</button></div><div className="record-grid">{rows.map(r=><article className="card record-card" key={text(r,'id')}><span className="badge">{text(r,'priority')} · {text(r,'status')}</span><h3>{text(r,'title')}</h3><p>{text(r,'person_name')||'General task'} · {text(r,'owner_name')}</p><p>{date(text(r,'due_at'))}</p><div className="toolbar">{!!r.person_id&&<button className="secondary" onClick={()=>void open(text(r,'person_id'))}>Open person</button>}<button className="secondary" onClick={()=>edit('Update task',`tasks/${r.id}/update/`,[{name:'status',options:choices(['OPEN','IN_PROGRESS','COMPLETED','CANCELLED']),value:r.status},{name:'due_at',type:'datetime-local'},{name:'priority',options:choices(['LOW','NORMAL','HIGH','URGENT']),value:r.priority}])}>Update</button></div></article>)}</div></>}
 
@@ -60,7 +64,7 @@ export function Workspace({view,user,masters,open,changed}:{view:ExtraView;user:
 
  {view==='reports'&&<><div className="toolbar"><a className="secondary" href="/api/v1/export/">Download authorized CSV</a></div><section className="card record-card"><h2>Branch performance</h2><DataFields data={meta} fields={['people','active_leads','students','unassigned','overdue','sla_breaches','unverified_intake']}/><h3>Sources</h3><ReportTable rows={(meta.sources||[]) as Row[]}/><h3>Owner workload</h3><ReportTable rows={(meta.owners||[]) as Row[]}/><h3>Lead funnel</h3><ReportTable rows={(meta.funnel||[]) as Row[]}/></section></>}
 
- {!rows.length&&!['settings','reports','qr','imports'].includes(view)&&<section className="card empty">No {label(view).toLowerCase()} to show.</section>}
+ {!rows.length&&!['settings','reports','qr','imports','staffqr','assisted'].includes(view)&&<section className="card empty">No {label(view).toLowerCase()} to show.</section>}
 
  </div>;
 
@@ -143,7 +147,7 @@ function Settings({data,user,edit,masters}:{data:Row;user:User;masters:Masters;e
 
  const allowed:Record<string,string[]>={calendar:['working_days','open_time','close_time','holidays','timezone'],sla:['target_business_hours','active'],assignment:['mode'],policy:['key','value'],user:['username','name','role','branch_id','active','availability','leave_until','max_open_leads','password','confirm_transfer']};
 
- const normalized=fields.filter(f=>!allowed[kind]||allowed[kind].includes(f.name)).map(f=>({...f,label:f.name==='working_days'?'Working days (0 Monday … 6 Sunday)':f.name==='holidays'?'Holiday dates, comma separated':undefined,type:['active','note_required','confirm_transfer'].includes(f.name)?'checkbox':f.name==='password'?'password':['branch_id','source','campaign','value','target_business_hours','max_open_leads'].includes(f.name)?'number':f.name==='working_days'?'numbers':f.name==='holidays'?'list':f.name==='leave_until'?'date':['open_time','close_time'].includes(f.name)?'time':'text',options:f.name==='role'?choices(['ADMIN','MANAGER','COUNSELOR','DOCS','FINANCE','MANAGEMENT']):f.name==='availability'?choices(['ACTIVE','ON_LEAVE','INACTIVE']):f.name==='mode'?choices(['ROUND_ROBIN','MANAGER_QUEUE']):f.name==='branch_id'?masters.branches:f.name==='source'?masters.sources:f.name==='campaign'?masters.campaigns:undefined}));
+ const normalized=fields.filter(f=>!allowed[kind]||allowed[kind].includes(f.name)).map(f=>({...f,label:f.name==='working_days'?'Working days (0 Monday … 6 Sunday)':f.name==='holidays'?'Holiday dates, comma separated':undefined,type:['active','note_required','confirm_transfer'].includes(f.name)?'checkbox':f.name==='password'?'password':['branch_id','source','campaign','value','target_business_hours','max_open_leads'].includes(f.name)?'number':f.name==='working_days'?'numbers':f.name==='holidays'?'list':f.name==='leave_until'?'date':['open_time','close_time'].includes(f.name)?'time':'text',options:f.name==='role'?choices(['ADMIN','MANAGER','FRONTDESK','COUNSELOR','DOCS','FINANCE','MANAGEMENT']).map(o=>o.id==='FRONTDESK'?{...o,name:'Frontdesk Officer'}:o):f.name==='availability'?choices(['ACTIVE','ON_LEAVE','INACTIVE']):f.name==='mode'?choices(['ROUND_ROBIN','MANAGER_QUEUE']):f.name==='branch_id'?masters.branches:f.name==='source'?masters.sources:f.name==='campaign'?masters.campaigns:undefined}));
 
  edit(title,'settings/',normalized,{kind,id,_nest:'data'});
 

@@ -1,12 +1,16 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import api,operations,settings_api,authentication,reports,duplicate_api
+from . import api,operations,settings_api,authentication,reports,duplicate_api,counseling
 from qr import api as qr_api
 from intake import api as intake_api
 from data_import import api as import_api
 router = DefaultRouter()
 router.register('people', api.PersonViewSet, basename='person')
 urlpatterns = [
+    path('people/<uuid:pk>/counseling/',counseling.record),
+    path('qr/library/',qr_api.staff_library),
+    path('intake/paper/',intake_api.paper_registration),
+    path('intake/paper/<uuid:pk>/verify/',intake_api.paper_verify),
     path('reports/',reports.reports),
     path('duplicate-check/',duplicate_api.duplicate_check),
     path('health/',api.health),path('auth/session/',api.session),path('auth/login/',api.LoginView.as_view()),path('auth/logout/',api.logout_view),path('auth/mfa/setup/',authentication.mfa_setup),path('auth/mfa/verify/',authentication.mfa_verify),
