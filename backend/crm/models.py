@@ -336,3 +336,28 @@ class CounselingRecord(models.Model):
     remarks = models.TextField(blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class CounselingSuggestion(models.Model):
+    person = models.ForeignKey(Person, on_delete=models.PROTECT, related_name='counseling_suggestions')
+    country = models.CharField(max_length=80)
+    study_level = models.CharField(max_length=80, blank=True)
+    university = models.CharField(max_length=200, blank=True)
+    course = models.CharField(max_length=200, blank=True)
+    intake = models.CharField(max_length=80, blank=True)
+    notes = models.TextField(blank=True)
+    suggested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['-created_at', '-pk']
+
+
+class CounselingOption(models.Model):
+    kind = models.CharField(max_length=20, choices=[('UNIVERSITY','University'),('COURSE','Course'),('INTAKE','Intake')])
+    name = models.CharField(max_length=200)
+    normalized_name = models.CharField(max_length=200)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['name','pk']
+        constraints = [models.UniqueConstraint(fields=['kind','normalized_name'],name='unique_counseling_option')]

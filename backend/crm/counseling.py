@@ -68,3 +68,55 @@ def record(request, pk):
         activity(request,person,'Counseling record updated',data['summary']+'\n'+data['decisions'],'MEETING')
         audit(request,'COUNSELING_UPDATED',person,old=old,new={field:data[field] for field in fields})
     return Response({**{field:getattr(item,field) if item else ([] if field=='documents_checklist' else '') for field in fields},'updated_at':item.updated_at if item else None,'updated_by':item.updated_by.get_full_name() if item and item.updated_by else '', 'assigned_counselor':person.owner.get_full_name() if person.owner else 'Unassigned'})
+
+
+class SuggestionInput(serializers.Serializer):
+    country=serializers.CharField(max_length=80)
+    study_level=serializers.CharField(max_length=80,required=False,allow_blank=True)
+    university=serializers.CharField(max_length=200,required=False,allow_blank=True)
+    course=serializers.CharField(max_length=200,required=False,allow_blank=True)
+    intake=serializers.CharField(max_length=80,required=False,allow_blank=True)
+    notes=serializers.CharField(max_length=5000,required=False,allow_blank=True)
+
+@extend_schema(request=SuggestionInput,responses=OpenApiTypes.OBJECT)
+@api_view(['GET','POST'])
+@transaction.atomic
+@idempotent(required=True)
+def suggestions(request,pk):
+    from .models import CounselingSuggestion
+    person=object_person(request,pk,'view' if request.method=='GET' else 'counseling',request.method=='POST')
+    if request.method=='POST':
+        values=request.data.get('suggestions') if set(request.data)=={'suggestions'} else [request.data]
+        if not isinstance(values,list) or not 1<=len(values)<=20:raise ValidationError('Add between one and twenty suggestions.')
+        if any(not isinstance(value,dict) or set(value)-set(SuggestionInput().fields) for value in values):raise ValidationError('Unsupported suggestion fields.')
+        serializer=SuggestionInput(data=values,many=True);serializer.is_valid(raise_exception=True)
+        for value in serializer.validated_data:
+            item=CounselingSuggestion.objects.create(person=person,suggested_by=request.user,**value)
+            details={name:getattr(item,name) for name in SuggestionInput().fields}
+            activity(request,person,'Study options suggested','\n'.join(f'{name.replace("_"," ").title()}: {value}' for name,value in details.items() if value),'MEETING')
+            audit(request,'COUNSELING_SUGGESTION_ADDED',person,new={**details,'suggestion_id':item.pk})
+    rows=CounselingSuggestion.objects.filter(person=person).select_related('suggested_by')
+    return Response({'results':[{**{name:getattr(item,name) for name in SuggestionInput().fields},'id':item.pk,'suggested_by':item.suggested_by.get_full_name() or item.suggested_by.username,'created_at':item.created_at} for item in rows]},status=201 if request.method=='POST' else 200)
+
+
+class OptionInput(serializers.Serializer):
+    kind=serializers.ChoiceField(choices=['UNIVERSITY','COURSE','INTAKE'])
+    name=serializers.CharField(max_length=200)
+
+@extend_schema(request=OptionInput,responses=OpenApiTypes.OBJECT)
+@api_view(['GET','POST'])
+@transaction.atomic
+def suggestion_options(request):
+    from .models import CounselingOption
+    from .permissions import scope
+    scope(request.user,'view' if request.method=='GET' else 'counseling')
+    if request.method=='POST':
+        if set(request.data)-{'kind','name'}:raise ValidationError('Unsupported option fields.')
+        serializer=OptionInput(data=request.data);serializer.is_valid(raise_exception=True)
+        kind=serializer.validated_data['kind'];name=' '.join(serializer.validated_data['name'].split())
+        if kind=='INTAKE' and len(name)>80:raise ValidationError('Intake must be at most 80 characters.')
+        item,created=CounselingOption.objects.get_or_create(kind=kind,normalized_name=name.casefold(),defaults={'name':name,'created_by':request.user})
+        if created:audit(request,'COUNSELING_OPTION_ADDED',item,new={'kind':kind,'name':name})
+        return Response({'id':item.pk,'name':item.name,'kind':item.kind},status=201 if created else 200)
+    kind=serializers.ChoiceField(choices=['UNIVERSITY','COURSE','INTAKE']).run_validation(request.query_params.get('kind'))
+    return Response({'results':list(CounselingOption.objects.filter(kind=kind).values('id','name','kind'))})

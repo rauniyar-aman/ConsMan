@@ -57,3 +57,19 @@ New unread notifications appear at the bottom right of the workspace and profile
 pages. Staff can open the linked profile, mark the notification read, or dismiss
 its pop-up. Dismissing keeps the notification in Notifications. Checks run every
 15 seconds while the tab is visible; no operating-system push notification is sent.
+
+
+## Study suggestion history
+
+Open a student's profile, then Counseling → Suggested study options → Add suggestion.
+Record the country, level, university, course and intake. Use Add another university /
+course to save several options from one discussion together. Every option is a separate
+history entry with the counselor, Nepal date/time and notes. Adding later options does
+not replace earlier recommendations. Staff can read the history; existing counselling
+permissions control who can add suggestions.
+
+
+University, course and intake fields have searchable dropdowns. Type a name to search;
+choose an existing option or click Add “name” when it is missing. New options are shared
+with other counselors. Country/level and recommendation details remain stored in each
+student's historical suggestion even when more options are added later.

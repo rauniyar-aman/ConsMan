@@ -7,7 +7,9 @@ from data_import import api as import_api
 router = DefaultRouter()
 router.register('people', api.PersonViewSet, basename='person')
 urlpatterns = [
+    path('counseling/options/',counseling.suggestion_options),
     path('people/<uuid:pk>/counseling/',counseling.record),
+    path('people/<uuid:pk>/counseling/suggestions/',counseling.suggestions),
     path('qr/library/',qr_api.staff_library),
     path('intake/paper/',intake_api.paper_registration),
     path('intake/paper/<uuid:pk>/verify/',intake_api.paper_verify),

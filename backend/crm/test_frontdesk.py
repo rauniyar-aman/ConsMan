@@ -190,3 +190,44 @@ class FrontdeskWorkflowTests(TestCase):
             profile=self.client.get(f'/api/v1/people/{other.pk}/');self.assertEqual(profile.status_code,200,profile.data);self.assertFalse(profile.data.get('masked',False))
         self.client.force_authenticate(self.counselor)
         self.assertEqual(self.client.patch(f'/api/v1/people/{other.pk}/profile/',{'full_name':'Unauthorized'},format='json').status_code,404)
+
+    def test_study_suggestions_preserve_multiple_recommendations_and_permissions(self):
+        from .models import CounselingSuggestion
+        self.client.force_authenticate(self.counselor)
+        url=f'/api/v1/people/{self.person.pk}/counseling/suggestions/'
+        first={'country':'United Kingdom','study_level':'Master','university':'University A','course':'Computing','intake':'September 2027','notes':'Discussed eligibility'}
+        self.assertEqual(self.client.post(url,first,format='json',HTTP_IDEMPOTENCY_KEY='suggestion-one').status_code,201)
+        self.assertEqual(self.client.post(url,first,format='json',HTTP_IDEMPOTENCY_KEY='suggestion-one').status_code,201)
+        second={**first,'university':'University B','course':'Data Science','intake':'January 2028'}
+        self.assertEqual(self.client.post(url,second,format='json',HTTP_IDEMPOTENCY_KEY='suggestion-two').status_code,201)
+        self.assertEqual(CounselingSuggestion.objects.count(),2)
+        rows=self.client.get(url).data['results'];self.assertEqual([r['university'] for r in rows],['University B','University A']);self.assertTrue(rows[0]['created_at']);self.assertEqual(rows[0]['suggested_by'],self.counselor.username)
+        self.client.force_authenticate(self.desk)
+        self.assertEqual(len(self.client.get(url).data['results']),2)
+        self.assertEqual(self.client.post(url,second,format='json',HTTP_IDEMPOTENCY_KEY='suggestion-desk').status_code,403)
+        self.client.force_authenticate(self.uk)
+        self.assertEqual(self.client.post(url,second,format='json',HTTP_IDEMPOTENCY_KEY='suggestion-other').status_code,404)
+        self.assertEqual(CounselingSuggestion.objects.count(),2)
+
+    def test_multiple_study_options_save_together_without_duplicate_retries(self):
+        from .models import CounselingSuggestion
+        self.client.force_authenticate(self.counselor)
+        url=f'/api/v1/people/{self.person.pk}/counseling/suggestions/'
+        values={'suggestions':[{'country':'UK','university':'A','course':'Computing','intake':'September 2027'},{'country':'UK','university':'B','course':'Business','intake':'January 2028'}]}
+        for attempt in range(2):self.assertEqual(self.client.post(url,values,format='json',HTTP_IDEMPOTENCY_KEY='batch-suggestions').status_code,201)
+        self.assertEqual(CounselingSuggestion.objects.count(),2)
+        bad={'suggestions':[{'country':'Canada','university':'C'},{'country':''}]}
+        self.assertEqual(self.client.post(url,bad,format='json',HTTP_IDEMPOTENCY_KEY='invalid-batch').status_code,400)
+        self.assertEqual(CounselingSuggestion.objects.count(),2)
+
+    def test_search_catalog_adds_shared_options_without_case_duplicates(self):
+        from .models import CounselingOption
+        url='/api/v1/counseling/options/'
+        self.client.force_authenticate(self.counselor)
+        for kind,name in [('UNIVERSITY','University of East London'),('COURSE','MSc Computing'),('INTAKE','September 2027')]:
+            result=self.client.post(url,{'kind':kind,'name':name},format='json');self.assertEqual(result.status_code,201,result.data)
+            repeat=self.client.post(url,{'kind':kind,'name':name.lower()},format='json');self.assertEqual(repeat.status_code,200);self.assertEqual(repeat.data['id'],result.data['id'])
+            self.client.force_authenticate(self.uk);self.assertEqual(self.client.get(url,{'kind':kind}).data['results'][0]['name'],name)
+        self.assertEqual(CounselingOption.objects.count(),3)
+        self.client.force_authenticate(self.desk);self.assertEqual(self.client.get(url,{'kind':'UNIVERSITY'}).status_code,200)
+        self.assertEqual(self.client.post(url,{'kind':'UNIVERSITY','name':'Other'},format='json').status_code,403)

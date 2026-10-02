@@ -392,7 +392,7 @@ def merge_people(request):
             setattr(survivor,field,getattr(merged,field))
     survivor.save()
     moved={}
-    models=[ContactMethod,ConsentRecord,Activity,FollowUp,Task,EducationRecord,TestScore,OwnershipHistory,Notification,SlaTimer,Document]
+    models=[ContactMethod,ConsentRecord,Activity,FollowUp,Task,EducationRecord,TestScore,OwnershipHistory,Notification,SlaTimer,Document,CounselingSuggestion]
     from intake.models import IntakeSubmission
     models.append(IntakeSubmission)
     from admissions.models import Application,Document as AdmissionDocument,Deadline,Blocker,StudentPreference
