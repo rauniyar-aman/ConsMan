@@ -73,6 +73,6 @@ General queued messages, inbound processing and reminders still require the sepa
 
 ## Status
 
-Configuration and scheduled-checker tests are prepared locally. No Render Gateway service has been created, no hosted Gateway database has been configured, and the Cloudflare checker is disabled until its real Gateway URL is supplied. No live messages were sent.
+On 2026-10-02, the Free Render service `consman-whatsapp-gateway` was created in the existing project and configured with a dedicated `gateway` database in the existing hosted PostgreSQL project. The separate Cloudflare Worker `consman-render-keepalive` is deployed and enabled for 09:00–18:00 Nepal time. Gateway build/startup, WhatsApp pairing, the connection to ConsMan and live delivery still require verification. No live messages were sent. Four other Free web services were present in the Render workspace, so their activity also contributes to its 750-hour allowance. The schedule is not a guarantee of staying within that allowance.
 
 References: [Render Free limitations](https://render.com/docs/free), [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/).

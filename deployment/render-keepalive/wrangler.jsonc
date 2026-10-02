@@ -6,8 +6,8 @@
   "triggers": {"crons": ["*/10 * * * *"]},
   "observability": {"enabled": true},
   "vars": {
-    "ENABLED": "false",
+    "ENABLED": "true",
     "CONSMAN_HEALTH_URL": "https://consman-rauniyaraman-api.onrender.com/api/v1/health/",
-    "GATEWAY_HEALTH_URL": ""
+    "GATEWAY_HEALTH_URL": "https://consman-whatsapp-gateway.onrender.com/api/health"
   }
 }
