@@ -165,3 +165,5 @@
 .suggestion-history{overflow:visible}.catalog-input{position:relative;min-width:0}.catalog-input>input{margin-top:6px}.catalog-menu{position:absolute;inset:100% 0 auto;z-index:10;background:white;border:1px solid #cbd5e1;border-radius:6px;box-shadow:0 8px 20px #0f172a20;max-height:260px;overflow-y:auto}.catalog-menu button{display:block;width:100%;text-align:left;padding:10px 12px;white-space:normal}.catalog-menu button:hover,.catalog-menu button[aria-selected=true]{background:#eff6ff}.catalog-menu p{padding:10px 12px}.catalog-menu .catalog-add{border-top:1px solid #e2e8f0;font-weight:600;color:#1e3a8a}
 
 .profile-documents{margin-top:1.5rem}.document-file-card{margin-top:1rem;padding:1rem;border:1px solid var(--border,#dbe4ef);border-radius:8px;min-width:0}.document-file-card h4{overflow-wrap:anywhere;margin:0}.document-file-card form{margin-top:1rem}.profile-documents input[type=file]{width:100%;min-width:0}
+
+.followup-date-filters{flex-wrap:wrap;align-items:end}.followup-date-filters label{display:flex;flex-direction:column;gap:.4rem;min-width:160px}@media(max-width:600px){.followup-date-filters label{width:100%;min-width:0}}
