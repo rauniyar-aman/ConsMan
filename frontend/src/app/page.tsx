@@ -29,6 +29,10 @@ export default function Home() {
   const [create,setCreate] = useState(false), [toast,setToast] = useState(''), [busy,setBusy] = useState(false);
   const dialogOpen = create || !!detail || !!masked;
   useEffect(()=>{
+    const titles:Record<View,string>={dashboard:'Overview',people:'All people',followups:'Follow-ups',admissions:'Admissions',tasks:'Tasks',notifications:'Notifications',assisted:'Staff-assisted intake',intake:'Intake review',qr:'QR Studio',duplicates:'Duplicate review',access:'Access requests',imports:'Excel imports',reports:'Reports & export',audit:'Audit history',settings:'Settings'};
+    document.title=`${loading?'Loading':!user?'Sign in':create?'Add person':detail?'Person 360':titles[view]} | ConsMan`;
+  },[view,user,loading,create,detail]);
+  useEffect(()=>{
     if (!dialogOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
@@ -125,6 +129,7 @@ function PeopleTable({people,open,selection,select}:{people:Person[];open:(id:st
 
 function Login({onLogin,initialError}:{onLogin:(u:User|null)=>void;initialError:string}) {
   const [error,setError]=useState(initialError),[busy,setBusy]=useState(false),[mfa,setMfa]=useState(false),[secret,setSecret]=useState(''),[uri,setUri]=useState('');
+  useEffect(()=>{document.title=`${mfa?'Authenticator verification':'Sign in'} | ConsMan`;},[mfa]);
   async function submit(e:FormEvent<HTMLFormElement>) {e.preventDefault();setBusy(true);setError('');const data=Object.fromEntries(new FormData(e.currentTarget));try{await api('auth/session/');if(mfa){await api('auth/mfa/verify/','POST',data);}else{const r=await api<{mfa_required?:boolean;enroll?:boolean}>('auth/login/','POST',data);if(r.mfa_required){setMfa(true);if(r.enroll){const setup=await api<{secret:string;uri:string}>('auth/mfa/setup/','POST');setSecret(setup.secret);setUri(setup.uri);}return;}}const session=await api<{user:User}>('auth/session/');onLogin(session.user);}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
   return <div className="login-page"><div className="login-story"><div className="official-logo"><Image src="/logo-consman.jpg" alt="ConsMan" width={240} height={130} priority/></div><div><span className="eyebrow">THE BLESSING EDU</span><h1>Great futures start<br/>with a conversation.</h1><p>Your people, their ambitions, and every step in between.<br/>Together in one workspace.</p><div className="story-line"><span>Connect</span><ArrowRight size={16}/><span>Guide</span><ArrowRight size={16}/><span>Grow</span></div></div><small>Education consultancy CRM · Phase 1</small></div><div className="login-form"><div><div className="eyebrow">WELCOME TO YOUR WORKSPACE</div><h1>Sign in to ConsMan</h1><p>Pick up where your last conversation left off.</p><form onSubmit={submit}>{mfa?<><h3>Authenticator verification</h3>{secret&&uri&&<AuthenticatorSetup uri={uri} secret={secret}/>}<label>Six-digit code<input name="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required autoFocus/></label><button type="button" className="text-button" onClick={()=>{setMfa(false);setSecret('');setUri('');}}>Back to sign in</button></>:<><label>Username<input name="username" autoComplete="username" required autoFocus/></label><label>Password<PasswordInput name="password" autoComplete="current-password" required/></label></>}<ErrorText error={error}/><button className="primary" disabled={busy}>{busy?'Signing in…':'Sign in'}<ArrowRight size={16}/></button></form><p className="login-note"><ShieldCheck size={16}/>Access is limited to authorized staff.</p></div></div></div>;
 }
