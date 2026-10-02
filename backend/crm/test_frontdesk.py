@@ -168,3 +168,16 @@ class FrontdeskWorkflowTests(TestCase):
         self.person.refresh_from_db();self.assertEqual(self.person.stage,'LEAD');self.assertEqual(self.person.lead_status,'CONTACTED')
         self.client.force_authenticate(self.desk)
         self.assertEqual(self.client.post(path,{'revert_to_lead':True,'reason':'Mistake'},format='json').status_code,403)
+
+    def test_rollback_restores_status_from_latest_conversion(self):
+        from .models import AuditEvent
+        self.client.force_authenticate(self.counselor)
+        for status in ['NEW','COUNSELING','INTERESTED','DOCUMENT_COLLECTION','APPLICATION_READY']:
+            self.person.stage='LEAD';self.person.lead_status=status;self.person.save()
+            converted=self.client.post(f'/api/v1/people/{self.person.pk}/convert/')
+            self.assertEqual(converted.status_code,200,converted.data)
+            reverted=self.client.post(f'/api/v1/people/{self.person.pk}/lifecycle/',{'revert_to_lead':True,'reason':'Converted by mistake'},format='json')
+            self.assertEqual(reverted.status_code,200,reverted.data)
+            self.person.refresh_from_db();self.assertEqual(self.person.stage,'LEAD');self.assertEqual(self.person.lead_status,status)
+            self.assertIsNone(self.person.converted_at)
+            event=AuditEvent.objects.filter(action='LIFECYCLE_CHANGED').latest('pk');self.assertEqual(event.new['status'],status)

@@ -86,7 +86,10 @@ def lifecycle(request,pk):
     if request.data.get('revert_to_lead'):
         required_reason(request.data)
         if person.stage!='STUDENT':raise ValidationError('Only students can revert to lead.')
-        person.stage='LEAD';person.lead_status='CONTACTED';person.student_state='';person.converted_at=None
+        conversion=AuditEvent.objects.filter(object_id=str(person.pk),action='PERSON_CONVERTED').order_by('-at','-pk').first()
+        previous_status=conversion.old.get('lead_status') if conversion else None
+        if previous_status not in ['NEW','CONTACTED','COUNSELING','INTERESTED','DOCUMENT_COLLECTION','APPLICATION_READY']:previous_status='CONTACTED'
+        person.stage='LEAD';person.lead_status=previous_status;person.student_state='';person.converted_at=None
     elif person.stage=='STUDENT':
         state=request.data.get('student_state')
         if state and state not in ['ACTIVE','ENROLLED','DEFERRED','WITHDRAWN','ARCHIVED']:raise ValidationError('Invalid student state.')
