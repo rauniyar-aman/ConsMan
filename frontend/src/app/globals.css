@@ -121,3 +121,9 @@
 .profile-edit-modal .inline-form{margin:0;border:0;background:white}.profile-edit-modal .inline-form>h3{display:none}.profile-edit-modal .modal-header{align-items:center}
 
 .conversion-notice{margin:12px 0 20px}.conversion-notice>strong{display:block;margin-bottom:10px}.conversion-notice .inline-form{background:white}
+
+.visitor-card fieldset .form-grid{align-items:start}
+.visitor-card fieldset label{align-self:start;align-content:start}
+.visitor-card input:not([type=checkbox]):not([type=hidden]),.visitor-card select{height:44px;min-height:44px;max-height:44px;padding:10px 12px}
+.visitor-card fieldset textarea{min-height:88px;height:88px;max-height:none}
+.visitor-card .phone-input{align-self:start}
