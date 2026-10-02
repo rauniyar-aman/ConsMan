@@ -1,4 +1,20 @@
-# Connect the PC Gateway to live ConsMan
+# Connect Gateway to live ConsMan
+
+## Run while the PC is off
+
+Gateway needs a continuously running host. A tunnel on the PC stops when the PC shuts down. Render Free sleeps after inactivity, interrupting the persistent WhatsApp connection; it is unsuitable for continuous Gateway operation.
+
+1. Provision an Ubuntu cloud VM. For a zero-cost candidate, use only Oracle resources labelled Always Free eligible and remain within the account's current limits. Capacity may be unavailable and idle instances may be reclaimed; free hosting does not guarantee uninterrupted service. See [Oracle's current limits](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm).
+2. Install Docker on that VM and deploy the cloned Gateway using its Dockerfile. Store configuration in a private environment file. The current clone uses PostgreSQL through Prisma, including its WhatsApp authentication state; use a separate Gateway database and back it up. Preserve `/app/data/media` in a persistent volume.
+3. Configure automatic container restart and run the Cloudflare Tunnel connector as a server service. Point `gateway.rauniyaraman.com.np` to Gateway on the VM, with the API key enforced. Keep dashboard access private.
+4. Pair the office WhatsApp session on the hosted Gateway. Stop the PC instance before running the same session on the server to avoid simultaneous connections.
+5. Configure Render with the Gateway URL, API key, actual session ID and signing secret below. Configure the existing delivery/incoming webhooks on the hosted instance.
+6. Move the ConsMan message worker and its Redis service to the VM too, using the private configuration described in `COMMUNICATION_OPERATIONS.md`. OTP calls run in the web service; queued outbound messages, incoming-message processing and reminders require the worker.
+7. Test delivery and incoming callbacks with the PC powered off. Validate automatic restart and session restoration before relying on this setup.
+
+No cloud VM or Gateway migration has been performed by these documentation changes. Provisioning requires access to the chosen server.
+
+## Connect a running PC for testing
 
 Render cannot reach the Gateway at the PC's localhost. Use a stable HTTPS Cloudflare Tunnel endpoint while keeping Gateway and its paired session running. This sends WhatsApp messages; carrier SMS requires its own provider.
 
