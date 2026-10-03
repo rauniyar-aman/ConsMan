@@ -312,6 +312,34 @@ def document_detail(request,pk):
 
 @extend_schema(responses=OpenApiTypes.BINARY)
 @api_view(['GET'])
+def document_download_all(request):
+    import zipfile,tempfile
+    from django.http import FileResponse
+    person=person_for(request,request.query_params.get('person_id'))
+    documents=Document.objects.filter(person=person,version__gt=0).order_by('title','pk')
+    if not documents.exists():raise ValidationError('No uploaded documents to download.')
+    output=tempfile.SpooledTemporaryFile(max_size=8*1024*1024)
+    try:
+        with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_STORED) as archive:
+            for index,doc in enumerate(documents,1):
+                asset=get_object_or_404(DocumentVersion,document=doc,version=doc.version)
+                raw=bytes(asset.data)
+                if hashlib.sha256(raw).hexdigest()!=asset.checksum:raise ValidationError('Document integrity check failed.')
+                name=Path(doc.title.replace('\\','/')).name.strip('.') or 'document'
+                suffix={'application/pdf':'.pdf','image/png':'.png','image/jpeg':'.jpg'}[asset.mime]
+                if not name.lower().endswith(('.pdf','.png','.jpg','.jpeg')):name+=suffix
+                archive.writestr(f'{index:02d}-{name}',raw)
+                audit(request,'ADMISSION_DOCUMENT_DOWNLOADED',person,new={'document_id':str(doc.pk),'version':doc.version,'download_all':True})
+        output.seek(0)
+        response=FileResponse(output,as_attachment=True,filename=f'{person.ref}-documents.zip',content_type='application/zip')
+        response['Cache-Control']='private, no-store';response['X-Content-Type-Options']='nosniff'
+        return response
+    except Exception:
+        output.close();raise
+
+
+@extend_schema(responses=OpenApiTypes.BINARY)
+@api_view(['GET'])
 def document_download(request,pk,version):
     doc=get_document(request,pk)
     asset=get_object_or_404(DocumentVersion,document=doc,version=version)
@@ -319,7 +347,7 @@ def document_download(request,pk,version):
     if hashlib.sha256(raw).hexdigest()!=asset.checksum:raise ValidationError('Document integrity check failed.')
     response=HttpResponse(raw,content_type=asset.mime)
     from django.utils.http import content_disposition_header
-    response['Content-Disposition']=content_disposition_header(True,asset.filename)
+    response['Content-Disposition']=content_disposition_header(request.query_params.get('inline')!='1',asset.filename)
     response['Cache-Control']='private, no-store';response['X-Content-Type-Options']='nosniff'
     audit(request,'ADMISSION_DOCUMENT_DOWNLOADED',doc.person,new={'document_id':str(doc.pk),'version':version})
     return response

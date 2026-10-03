@@ -298,3 +298,18 @@ class FrontdeskWorkflowTests(TestCase):
         self.assertTrue(AuditEvent.objects.filter(action='ADMISSION_DOCUMENT_DELETED',old__document_id=doc_id).exists())
         self.assertEqual(self.client.get(path+'versions/1/').status_code,404)
         self.assertEqual(self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).data['results'],[])
+
+    def test_document_view_and_download_all_zip_exclude_deleted_files(self):
+        import io,zipfile
+        from PIL import Image
+        buffer=io.BytesIO();Image.new('RGB',(10,10),'white').save(buffer,format='PNG');raw=buffer.getvalue()
+        self.client.force_authenticate(self.desk)
+        response=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[SimpleUploadedFile('one.png',raw),SimpleUploadedFile('two.png',raw)]},format='multipart')
+        self.assertEqual(response.status_code,201,response.data);first,second=response.data['results']
+        view=self.client.get(f'/api/v1/admissions/documents/{first["id"]}/versions/1/?inline=1')
+        self.assertEqual(view.status_code,200);self.assertTrue(view['Content-Disposition'].startswith('inline'));self.assertEqual(view.content,raw)
+        self.client.delete(f'/api/v1/admissions/documents/{second["id"]}/')
+        result=self.client.get('/api/v1/admissions/documents/download-all/',{'person_id':str(self.person.pk)})
+        self.assertEqual(result.status_code,200);self.assertIn('.zip',result['Content-Disposition'])
+        with zipfile.ZipFile(io.BytesIO(b''.join(result.streaming_content))) as archive:
+            self.assertEqual(len(archive.namelist()),1);self.assertEqual(archive.read(archive.namelist()[0]),raw)
