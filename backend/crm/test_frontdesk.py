@@ -325,3 +325,15 @@ class FrontdeskWorkflowTests(TestCase):
         rows=self.client.get('/api/v1/followups/?include_completed=1').data
         self.assertEqual(rows[0]['outcome'],'Student will bring passport tomorrow');self.assertEqual(rows[0]['completed_by_name'],'desk');self.assertTrue(rows[0]['completed_at'])
         followup.refresh_from_db();self.assertEqual(followup.completed_by,self.desk);self.assertEqual(followup.owner,self.counselor)
+
+    def test_followup_list_completion_permission_matches_staff_work_scope(self):
+        followup=FollowUp.objects.create(person=self.person,owner=self.counselor,subject='Call student',due_at=timezone.now())
+        self.client.force_authenticate(self.desk)
+        self.assertTrue(self.client.get('/api/v1/followups/').data[0]['can_complete'])
+        self.client.force_authenticate(self.uk)
+        self.assertFalse(self.client.get('/api/v1/followups/').data[0]['can_complete'])
+        self.assertEqual(self.client.post(f'/api/v1/followups/{followup.pk}/complete/',{'outcome':'Called student'},format='json').status_code,404)
+        self.client.force_authenticate(self.desk)
+        self.assertEqual(self.client.post(f'/api/v1/followups/{followup.pk}/complete/',{'outcome':'Student will visit Monday'},format='json').status_code,200)
+        history=self.client.get('/api/v1/followups/?include_completed=1').data[0]
+        self.assertFalse(history['can_complete']);self.assertEqual(history['outcome'],'Student will visit Monday');self.assertEqual(history['completed_by_name'],'desk')

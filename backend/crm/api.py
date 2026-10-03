@@ -254,7 +254,9 @@ def followup_queue(request):
         from django.db.models.functions import Coalesce
         items=items.annotate(recorded_at=Coalesce('completed_at','due_at')).order_by('-recorded_at','-pk')
     else:items=items.filter(completed_at__isnull=True,status__in=['OPEN','IN_PROGRESS'])
-    return Response(FollowUpSerializer(items, many=True).data)
+    try:work_person_ids=set(scoped_people(request.user,people,'work').values_list('pk',flat=True))
+    except PermissionDenied:work_person_ids=set()
+    return Response(FollowUpSerializer(items, many=True,context={'work_person_ids':work_person_ids}).data)
 
 @extend_schema(request=OutcomeSerializer, responses=FollowUpSerializer)
 @api_view(['POST'])

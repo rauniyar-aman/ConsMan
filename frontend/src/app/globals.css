@@ -183,3 +183,7 @@
 .conversion-confirmation{padding:20px;border-radius:8px}.conversion-confirmation h3{margin-bottom:8px}.conversion-confirmation-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}.conversion-confirmation-actions button{min-height:40px;margin:0!important}@media(max-width:600px){.conversion-confirmation-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.conversion-confirmation-actions button{width:100%}}
 
 .document-lines table{table-layout:fixed;white-space:normal}.document-lines td{white-space:normal;overflow-wrap:anywhere}.document-lines td>span{display:block;white-space:normal;overflow-wrap:anywhere;word-break:break-word;min-width:0}.document-lines input,.document-lines select{min-width:0;width:100%;max-width:100%}.document-lines th:last-child{width:152px}.document-lines th:nth-child(2){width:auto}
+
+.followup-inline-complete{flex-basis:100%;width:100%;padding:16px;background:#f6f9fd;border:1px solid var(--border);border-radius:6px}.followup-inline-complete label{display:grid;gap:8px}.followup-inline-complete>div{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}.followup-inline-complete textarea{width:100%;font-size:14px}@media(max-width:600px){.followup-inline-complete textarea{font-size:16px}.followup-inline-complete>div button{width:100%}}
+
+.followup-list>div:has(.followup-inline-complete){flex-wrap:wrap}

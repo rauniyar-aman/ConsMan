@@ -57,6 +57,9 @@ class ActivitySerializer(serializers.ModelSerializer):
         read_only_fields = ['id','actor','performed_at','corrects']
 
 class FollowUpSerializer(serializers.ModelSerializer):
+    can_complete = serializers.SerializerMethodField()
+    def get_can_complete(self,obj):
+        return not obj.completed_at and obj.status in ['OPEN','IN_PROGRESS'] and obj.person_id in self.context.get('work_person_ids',set())
     completed_by_name = serializers.SerializerMethodField()
     def get_completed_by_name(self,obj):
         return (obj.completed_by.get_full_name() or obj.completed_by.username) if obj.completed_by_id else ''
@@ -66,7 +69,7 @@ class FollowUpSerializer(serializers.ModelSerializer):
     person_id = serializers.UUIDField(read_only=True)
     class Meta:
         model = FollowUp
-        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','owner_name','created_at','completed_at','completed_by_name','outcome']
+        fields = ['id','person_id','person_name','person_ref','subject','method','due_at','status','notes','owner_name','created_at','completed_at','completed_by_name','can_complete','outcome']
         read_only_fields = ['id','created_at','completed_at','outcome','status']
 
 class LoginSerializer(serializers.Serializer):
