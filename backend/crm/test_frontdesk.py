@@ -232,7 +232,7 @@ class FrontdeskWorkflowTests(TestCase):
         self.client.force_authenticate(self.desk);self.assertEqual(self.client.get(url,{'kind':'UNIVERSITY'}).status_code,200)
         self.assertEqual(self.client.post(url,{'kind':'UNIVERSITY','name':'Other'},format='json').status_code,403)
 
-    def test_multiple_uploads_then_edit_each_document_name_and_type(self):
+    def test_multiple_uploads_then_edit_document_type_without_renaming(self):
         import io
         from PIL import Image
         self.client.force_authenticate(self.desk)
@@ -243,10 +243,12 @@ class FrontdeskWorkflowTests(TestCase):
         self.assertEqual(Document.objects.count(),5)
         r=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[upload('passport.png'),upload('class10.png'),upload('class12.png'),upload('degree.png'),upload('marks.png')]},format='multipart',HTTP_IDEMPOTENCY_KEY='batch-documents')
         self.assertEqual(r.status_code,201,r.data);self.assertEqual(Document.objects.count(),5)
-        doc=Document.objects.first()
+        doc=Document.objects.get(title="passport.png")
         self.assertEqual(doc.status,'UPLOADED');self.assertEqual(doc.type,'Unclassified');self.assertFalse(doc.required)
         r=self.client.patch(f'/api/v1/admissions/documents/{doc.pk}/',{'type':'Class 10th','title':'Class 10 transcript'},format='json')
-        self.assertEqual(r.status_code,200,r.data);doc.refresh_from_db();self.assertEqual(doc.type,'Class 10th');self.assertEqual(doc.title,'Class 10 transcript')
+        self.assertEqual(r.status_code,400,r.data)
+        r=self.client.patch(f'/api/v1/admissions/documents/{doc.pk}/',{'type':'Class 10th'},format='json')
+        self.assertEqual(r.status_code,200,r.data);doc.refresh_from_db();self.assertEqual(doc.type,'Class 10th');self.assertEqual(doc.title,'passport.png')
         self.client.force_authenticate(self.counselor)
         rows=self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).data['results']
         self.assertEqual(len(rows),5);self.assertTrue(all(row['version']==1 and row['status']=='UPLOADED' for row in rows))

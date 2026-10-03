@@ -281,6 +281,7 @@ def document_detail(request,pk):
         if doc.application:event(request,doc.application,'DOCUMENT_UPLOADED',new={'document_id':str(doc.pk),'version':doc.version})
     elif request.method=='PATCH':
         if set(request.data).issubset({'type','title'}) and request.data:
+            if doc.version and 'title' in request.data:raise ValidationError('Uploaded filenames cannot be changed. You can change the document type.')
             old={'type':doc.type,'title':doc.title}
             new_type=serializers.CharField(max_length=80).run_validation(request.data.get('type',doc.type))
             new_title=serializers.CharField(max_length=160).run_validation(request.data.get('title',doc.title))
@@ -321,14 +322,18 @@ def document_download_all(request):
     output=tempfile.SpooledTemporaryFile(max_size=8*1024*1024)
     try:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_STORED) as archive:
+            used_names=set()
             for index,doc in enumerate(documents,1):
                 asset=get_object_or_404(DocumentVersion,document=doc,version=doc.version)
                 raw=bytes(asset.data)
                 if hashlib.sha256(raw).hexdigest()!=asset.checksum:raise ValidationError('Document integrity check failed.')
-                name=Path(doc.title.replace('\\','/')).name.strip('.') or 'document'
+                name=Path(asset.filename.replace('\\','/')).name.strip('.') or 'document'
                 suffix={'application/pdf':'.pdf','image/png':'.png','image/jpeg':'.jpg'}[asset.mime]
                 if not name.lower().endswith(('.pdf','.png','.jpg','.jpeg')):name+=suffix
-                archive.writestr(f'{index:02d}-{name}',raw)
+                archive_name=name
+                while archive_name.casefold() in used_names:archive_name=f'{index:02d}-{archive_name}'
+                used_names.add(archive_name.casefold())
+                archive.writestr(archive_name,raw)
                 audit(request,'ADMISSION_DOCUMENT_DOWNLOADED',person,new={'document_id':str(doc.pk),'version':doc.version,'download_all':True})
         output.seek(0)
         response=FileResponse(output,as_attachment=True,filename=f'{person.ref}-documents.zip',content_type='application/zip')
