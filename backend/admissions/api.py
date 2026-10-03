@@ -208,16 +208,26 @@ def get_document(request,pk,write=False):
 
 
 
+def validate_pdf(raw):
+    try:
+        with pymupdf.open(stream=raw,filetype='pdf') as pdf:
+            if pdf.is_encrypted:raise ValidationError('This PDF is password-protected. Upload an unlocked copy.')
+            if not len(pdf):raise ValidationError('This PDF has no readable pages.')
+            if pdf.embfile_count():raise ValidationError('This PDF contains embedded attachments. Upload the document without embedded attachments.')
+            # Inspect PDF dictionaries, not binary image streams or ordinary text.
+            for xref in range(1,pdf.xref_length()):
+                if pdf.xref_get_key(xref,'S')[1] in ['/JavaScript','/Launch'] or any(pdf.xref_get_key(xref,key)[0]!='null' for key in ['JS','JavaScript']):
+                    raise ValidationError('This PDF contains active scripts or launch actions. Upload a standard scanned PDF.')
+    except ValidationError:raise
+    except Exception:raise ValidationError('This PDF could not be read. Open it in a PDF viewer and export a new PDF copy.')
+
+
 def validate_upload(upload):
     if not upload:raise ValidationError('Upload a PDF, PNG or JPEG.')
     raw=upload.read();mime=''
-    if raw.startswith(b'%PDF-'):
-        try:
-            with pymupdf.open(stream=raw,filetype='pdf') as pdf:
-                if pdf.is_encrypted or not len(pdf) or pdf.embfile_count():raise ValueError()
-            if b'/JavaScript' in raw or b'/JS' in raw or b'/Launch' in raw:raise ValueError()
-            mime='application/pdf'
-        except Exception:raise ValidationError('Upload a readable PDF without scripts, attachments or encryption.')
+    if b'%PDF-' in raw[:1024]:
+        validate_pdf(raw)
+        mime='application/pdf'
     else:
         try:
             image=Image.open(io.BytesIO(raw))
@@ -235,7 +245,12 @@ def document_batch_upload(request):
     person=person_for(request,request.data.get('person_id'),'edit')
     files=request.FILES.getlist('files')
     if not 1<=len(files)<=20:raise ValidationError('Choose between 1 and 20 files.')
-    validated=[validate_upload(upload) for upload in files]
+    validated=[]
+    for upload in files:
+        try:validated.append(validate_upload(upload))
+        except ValidationError as exc:
+            filename=Path(upload.name.replace('\\','/')).name
+            raise ValidationError({'files':{filename:exc.detail}})
     documents=[]
     for raw,mime,filename in validated:
         doc=Document.objects.create(person=person,type='Unclassified',title=filename,required=False,status='UPLOADED',version=1)

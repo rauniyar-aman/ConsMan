@@ -264,3 +264,18 @@ class FrontdeskWorkflowTests(TestCase):
         large=SimpleUploadedFile('large.png',buffer.getvalue()+b'\0'*(6*1024*1024),content_type='image/png')
         self.assertGreater(large.size,5*1024*1024)
         raw,mime,_=validate_upload(large);self.assertEqual(mime,'image/png');self.assertGreater(len(raw),5*1024*1024)
+
+    def test_pdf_upload_allows_script_words_in_text_but_rejects_active_actions(self):
+        import pymupdf
+        from admissions.api import validate_upload
+        from rest_framework.exceptions import ValidationError
+        pdf=pymupdf.open();pdf.new_page();pdf.set_metadata({'title':'/JS /JavaScript /Launch course notes'})
+        raw=pdf.tobytes();self.assertIn(b'/JS',raw)
+        self.assertEqual(validate_upload(SimpleUploadedFile('notes.pdf',raw))[1],'application/pdf')
+        action=pdf.get_new_xref();pdf.update_object(action,'<< /Type /Action /S /JavaScript /JS (app.alert("test")) >>')
+        pdf.xref_set_key(pdf.pdf_catalog(),'OpenAction',f'{action} 0 R')
+        with self.assertRaises(ValidationError):validate_upload(SimpleUploadedFile('script.pdf',pdf.tobytes()))
+        self.client.force_authenticate(self.desk)
+        result=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[SimpleUploadedFile('notes.pdf',raw),SimpleUploadedFile('broken.pdf',b'%PDF-1.7 broken')]},format='multipart')
+        self.assertEqual(result.status_code,400);self.assertIn('broken.pdf',result.data['fields']['files']);self.assertFalse(Document.objects.exists())
+        pdf.close()
