@@ -37,6 +37,27 @@ export default function Home() {
   const [followHistory,setFollowHistory]=useState(false),[historyRows,setHistoryRows]=useState<FollowUp[]>([]),[historyScope,setHistoryScope]=useState<'completed'|'all'>('completed');
   const [completingFollowup,setCompletingFollowup]=useState<number|null>(null),[followComment,setFollowComment]=useState(''),[followCompleteError,setFollowCompleteError]=useState('');
   const [followDate,setFollowDate]=useState<'today'|'tomorrow'|'all'|'custom'>('today'),[followFrom,setFollowFrom]=useState(''),[followTo,setFollowTo]=useState('');
+  const [navigationReady,setNavigationReady]=useState(false);
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search),requested=params.get('view');
+    const views:View[]=['staffqr','insights','communications','dashboard','people','followups','admissions','finance','tasks','notifications','assisted','intake','qr','duplicates','access','imports','reports','audit','settings'];
+    if(requested&&views.includes(requested as View))setView(requested as View);
+    if(params.get('followup_view')==='comments')setFollowHistory(true);
+    if(params.get('history_scope')==='all')setHistoryScope('all');
+    const day=params.get('followup_date');if(day&&['today','tomorrow','all','custom'].includes(day))setFollowDate(day as typeof followDate);
+    const from=params.get('from'),to=params.get('to');if(from&&/^\d{4}-\d{2}-\d{2}$/.test(from))setFollowFrom(from);if(to&&/^\d{4}-\d{2}-\d{2}$/.test(to))setFollowTo(to);
+    setNavigationReady(true);
+  },[]);
+  useEffect(()=>{
+    if(!navigationReady)return;
+    const url=new URL(window.location.href);url.searchParams.set('view',view);
+    for(const key of ['followup_view','history_scope','followup_date','from','to'])url.searchParams.delete(key);
+    if(view==='followups'){
+      url.searchParams.set('followup_view',followHistory?'comments':'open');url.searchParams.set('history_scope',historyScope);url.searchParams.set('followup_date',followDate);
+      if(followDate==='custom'){if(followFrom)url.searchParams.set('from',followFrom);if(followTo)url.searchParams.set('to',followTo);}
+    }
+    if(url.href!==window.location.href)window.history.replaceState(window.history.state,'',url);
+  },[navigationReady,view,followHistory,historyScope,followDate,followFrom,followTo]);
   const nepalDay=(value:string|number)=>new Date(new Date(value).getTime()+345*60*1000).toISOString().slice(0,10);
   const todayKey=nepalDay(Date.now()),tomorrowKey=nepalDay(Date.now()+86400000);
   const invalidFollowRange=followDate==='custom'&&!!followFrom&&!!followTo&&followFrom>followTo;
