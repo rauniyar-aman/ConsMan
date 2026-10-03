@@ -315,3 +315,13 @@ class FrontdeskWorkflowTests(TestCase):
         self.assertEqual(result.status_code,200);self.assertIn('.zip',result['Content-Disposition'])
         with zipfile.ZipFile(io.BytesIO(b''.join(result.streaming_content))) as archive:
             self.assertEqual(len(archive.namelist()),1);self.assertEqual(archive.read(archive.namelist()[0]),raw)
+
+    def test_completed_followup_list_includes_comment_time_and_actual_staff(self):
+        followup=FollowUp.objects.create(person=self.person,owner=self.counselor,subject='Discuss documents',due_at=timezone.now(),notes='Ask about passport')
+        self.client.force_authenticate(self.desk)
+        result=self.client.post(f'/api/v1/followups/{followup.pk}/complete/',{'outcome':'Student will bring passport tomorrow'},format='json')
+        self.assertEqual(result.status_code,200,result.data)
+        self.client.force_authenticate(self.counselor)
+        rows=self.client.get('/api/v1/followups/?include_completed=1').data
+        self.assertEqual(rows[0]['outcome'],'Student will bring passport tomorrow');self.assertEqual(rows[0]['completed_by_name'],'desk');self.assertTrue(rows[0]['completed_at'])
+        followup.refresh_from_db();self.assertEqual(followup.completed_by,self.desk);self.assertEqual(followup.owner,self.counselor)

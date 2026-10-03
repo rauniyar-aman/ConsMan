@@ -159,6 +159,7 @@ class FollowUp(models.Model):
     method = models.CharField(max_length=20, default='CALL', choices=[('CALL','Call'),('WHATSAPP','WhatsApp'),('EMAIL','Email'),('MEETING','Meeting')])
     due_at = models.DateTimeField(db_index=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    completed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name='+')
     outcome = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=20, default='OPEN', choices=[('OPEN','Open'),('IN_PROGRESS','In progress'),('COMPLETED','Completed'),('CANCELLED','Cancelled')])
     created_at = models.DateTimeField(default=timezone.now,editable=False)

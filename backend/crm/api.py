@@ -249,7 +249,7 @@ class PersonViewSet(ViewSet):
 @api_view(['GET'])
 def followup_queue(request):
     people = scoped_people(request.user, Person.objects.filter(archived_at__isnull=True))
-    items = FollowUp.objects.filter(person__in=people).select_related('person','owner')
+    items = FollowUp.objects.filter(person__in=people).select_related('person','owner','completed_by')
     if request.query_params.get('include_completed')=='1':
         from django.db.models.functions import Coalesce
         items=items.annotate(recorded_at=Coalesce('completed_at','due_at')).order_by('-recorded_at','-pk')
@@ -270,7 +270,7 @@ def complete_followup(request, pk):
     # Serialize next-action updates with concurrent scheduling for this person.
     person = Person.objects.select_for_update(of=('self',)).get(pk=item.person_id)
     item.completed_at, item.outcome = timezone.now(), outcome
-    item.status='COMPLETED'
+    item.status='COMPLETED';item.completed_by=request.user
     item.save()
     refresh_next_action(person)
     activity(request, item.person, f'Follow-up completed: {item.subject}', outcome, 'FOLLOWUP')
