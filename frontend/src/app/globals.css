@@ -187,3 +187,5 @@
 .followup-inline-complete{flex-basis:100%;width:100%;padding:16px;background:#f6f9fd;border:1px solid var(--border);border-radius:6px}.followup-inline-complete label{display:grid;gap:8px}.followup-inline-complete>div{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}.followup-inline-complete textarea{width:100%;font-size:14px}@media(max-width:600px){.followup-inline-complete textarea{font-size:16px}.followup-inline-complete>div button{width:100%}}
 
 .followup-list>div:has(.followup-inline-complete){flex-wrap:wrap}
+
+.student-followup-groups{padding:0 20px 20px;display:grid;gap:20px}.student-followup-group{border:1px solid var(--border);border-radius:8px;overflow:hidden}.student-followup-group>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:#f6f9fd}.student-followup-group>header small{display:block;color:#64748b;margin-top:5px}.student-followup-group .followup-comment-table p{margin-top:8px}.student-followup-group .followup-comment-table table{white-space:normal}@media(max-width:600px){.student-followup-groups{padding:0 12px 12px}.student-followup-group>header{align-items:start;flex-wrap:wrap}}
