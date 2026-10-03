@@ -120,7 +120,15 @@ class ApplicationEvent(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
 
 
+class ActiveDocumentManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().exclude(status='DELETED')
+
+
 class Document(models.Model):
+    objects=ActiveDocumentManager()
+    all_objects=models.Manager()
+
     student_visible=models.BooleanField(default=False)
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     person=models.ForeignKey('crm.Person',on_delete=models.PROTECT,related_name='admission_documents')

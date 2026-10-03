@@ -262,10 +262,17 @@ def document_batch_upload(request):
 
 
 @extend_schema(request=OpenApiTypes.OBJECT,responses=OpenApiTypes.OBJECT)
-@api_view(['GET','PATCH','POST'])
+@api_view(['GET','PATCH','POST','DELETE'])
 @transaction.atomic
 def document_detail(request,pk):
     doc=get_document(request,pk,request.method!='GET')
+    if request.method=='DELETE':
+        if doc.application_id and doc.required:raise ValidationError('Required application documents cannot be deleted. Use the application document controls to mark them not applicable.')
+        old={'document_id':str(doc.pk),'type':doc.type,'title':doc.title,'version':doc.version}
+        doc.status='DELETED';doc.student_visible=False;doc.save(update_fields=['status','student_visible'])
+        audit(request,'ADMISSION_DOCUMENT_DELETED',doc.person,old=old)
+        if doc.application:event(request,doc.application,'DOCUMENT_DELETED',old=old)
+        return Response({'deleted':True})
     if request.method=='POST':
         raw,mime,filename=validate_upload(request.FILES.get('file'))
         doc.version+=1;doc.status='UPLOADED';doc.verified_by=None;doc.verified_at=None;doc.save()

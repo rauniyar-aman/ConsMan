@@ -279,3 +279,22 @@ class FrontdeskWorkflowTests(TestCase):
         result=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[SimpleUploadedFile('notes.pdf',raw),SimpleUploadedFile('broken.pdf',b'%PDF-1.7 broken')]},format='multipart')
         self.assertEqual(result.status_code,400);self.assertIn('broken.pdf',result.data['fields']['files']);self.assertFalse(Document.objects.exists())
         pdf.close()
+
+    def test_staff_delete_document_hides_versions_and_keeps_audit(self):
+        import io
+        from PIL import Image
+        from .models import AuditEvent
+        from admissions.models import DocumentVersion
+        buffer=io.BytesIO();Image.new('RGB',(10,10),'white').save(buffer,format='PNG')
+        self.client.force_authenticate(self.desk)
+        response=self.client.post('/api/v1/admissions/documents/upload/',{'person_id':str(self.person.pk),'files':[SimpleUploadedFile('passport.png',buffer.getvalue(),content_type='image/png')]},format='multipart')
+        self.assertEqual(response.status_code,201,response.data);doc_id=response.data['results'][0]['id'];path=f'/api/v1/admissions/documents/{doc_id}/'
+        self.client.force_authenticate(self.uk)
+        self.assertEqual(self.client.delete(path).status_code,404)
+        self.assertTrue(Document.objects.filter(pk=doc_id).exists())
+        self.client.force_authenticate(self.desk)
+        self.assertEqual(self.client.delete(path).status_code,200)
+        self.assertFalse(Document.objects.filter(pk=doc_id).exists());self.assertTrue(DocumentVersion.objects.filter(document_id=doc_id).exists());self.assertEqual(Document.all_objects.get(pk=doc_id).status,'DELETED')
+        self.assertTrue(AuditEvent.objects.filter(action='ADMISSION_DOCUMENT_DELETED',old__document_id=doc_id).exists())
+        self.assertEqual(self.client.get(path+'versions/1/').status_code,404)
+        self.assertEqual(self.client.get('/api/v1/admissions/documents/',{'person_id':str(self.person.pk)}).data['results'],[])
